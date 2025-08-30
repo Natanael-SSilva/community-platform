@@ -1,77 +1,87 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
-import { supabase } from '../../services/supabase'; // Importamos nosso cliente Supabase
+import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../../services/supabase';
 import { styles } from './style';
 
+// Tipagem para a navegação
+type AuthStackParamList = {
+    ConfirmEmail: { email: string };
+};
+type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
+
 const RegisterScreen = () => {
+    const navigation = useNavigation<RegisterScreenNavigationProp>();
+    // ... (restante dos seus states continua igual)
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [username, setUsername] = useState(''); // Campo para o nome de usuário do perfil
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [username, setUsername] = useState('');
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+    const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    // Função que lida com o cadastro do usuário
     const handleSignUp = async () => {
-        if (!email || !password || !username) {
-            Alert.alert("Erro", "Por favor, preencha todos os campos.");
+        setError('');
+        if (!email || !password || !username || !confirmPassword) {
+            setError("Por favor, preencha todos os campos.");
+            return;
+        }
+        if (password !== confirmPassword) {
+            setError("As senhas não coincidem.");
             return;
         }
 
-        // Usamos a função signUp do Supabase Auth
+        setLoading(true);
         const { data, error } = await supabase.auth.signUp({
             email: email,
             password: password,
-            options: {
-                // Aqui passamos dados extras que queremos associar ao usuário,
-                // como o nome de usuário que irá para a tabela 'profiles'.
-                data: {
-                    username: username,
-                    full_name: username, // Podemos usar o username como nome completo inicial
-                }
-            }
+            options: { data: { username: username, full_name: username } }
         });
 
         if (error) {
-            // Se houver um erro, exibe para o usuário
-            Alert.alert("Erro no Cadastro", error.message);
+            setError(error.message);
         } else {
-            // Se o cadastro for bem-sucedido
-            Alert.alert(
-                "Cadastro realizado!",
-                "Enviamos um e-mail de confirmação para você. Por favor, verifique sua caixa de entrada."
-            );
+            // SUCESSO! Navega para a tela de confirmação, passando o email
+            navigation.navigate('ConfirmEmail', { email: email });
         }
+        setLoading(false);
     };
 
     return (
         <SafeAreaView style={styles.container}>
+            {/* O resto do seu JSX continua exatamente o mesmo */}
             <Text style={styles.title}>Crie sua Conta</Text>
             
-            <TextInput
-                style={styles.input}
-                placeholder="Nome de usuário"
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-            />
+            <View style={styles.inputContainer}>
+                <TextInput style={styles.input} placeholder="Nome de usuário" value={username} onChangeText={text => { setUsername(text); setError(''); }} autoCapitalize="none" />
+            </View>
             
-            <TextInput
-                style={styles.input}
-                placeholder="E-mail"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-            />
+            <View style={styles.inputContainer}>
+                <TextInput style={styles.input} placeholder="E-mail" value={email} onChangeText={text => { setEmail(text); setError(''); }} keyboardType="email-address" autoCapitalize="none" />
+            </View>
             
-            <TextInput
-                style={styles.input}
-                placeholder="Senha"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry // Esconde a senha
-            />
+            <View style={styles.inputContainer}>
+                <TextInput style={styles.input} placeholder="Senha" value={password} onChangeText={text => { setPassword(text); setError(''); }} secureTextEntry={!isPasswordVisible} />
+                <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+                    <Ionicons name={isPasswordVisible ? "eye-off" : "eye"} size={24} color="gray" style={styles.icon} />
+                </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-                <Text style={styles.buttonText}>Cadastrar</Text>
+            <View style={styles.inputContainer}>
+                <TextInput style={styles.input} placeholder="Confirmar Senha" value={confirmPassword} onChangeText={text => { setConfirmPassword(text); setError(''); }} secureTextEntry={!isConfirmPasswordVisible} />
+                <TouchableOpacity onPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}>
+                    <Ionicons name={isConfirmPasswordVisible ? "eye-off" : "eye"} size={24} color="gray" style={styles.icon} />
+                </TouchableOpacity>
+            </View>
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSignUp} disabled={loading}>
+                {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Cadastrar</Text>}
             </TouchableOpacity>
         </SafeAreaView>
     );
