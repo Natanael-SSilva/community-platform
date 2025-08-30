@@ -3,28 +3,28 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
     container: {
         flex: 1, // Faz o container ocupar todo o espaço vertical disponível.
-        backgroundColor: '#FFFFFF', // Define a cor de fundo como branco.
-        alignItems: 'center', // Centraliza os filhos na horizontal.
-        justifyContent: 'space-around', // Distribui os filhos verticalmente com espaço entre eles.
-        paddingHorizontal: 20, // Adiciona um espaçamento nas laterais.
+        backgroundColor: '#FFFFFF', 
+        alignItems: 'center', 
+        justifyContent: 'space-around', 
+        paddingHorizontal: 20, 
     },
     content: {
-        alignItems: 'center', // Centraliza o logo e o texto.
+        alignItems: 'center', 
     },
     logo: {
-        width: 150, // Largura da imagem.
-        height: 150, // Altura da imagem.
+        width: 150, 
+        height: 150, 
         resizeMode: 'contain', // Garante que a imagem caiba no espaço sem distorcer.
         marginBottom: 20, // Adiciona um espaço abaixo do logo.
     },
     title: {
-        fontSize: 24, // Tamanho da fonte.
-        fontWeight: 'bold', // Deixa o texto em negrito.
-        color: '#333333', // Cor do texto.
-        textAlign: 'center', // Centraliza o texto.
+        fontSize: 24, 
+        fontWeight: 'bold', 
+        color: '#333333', 
+        textAlign: 'center', 
     },
     button: {
-        backgroundColor: '#3F83F8', // Cor de fundo azul do botão.
+        backgroundColor: '#3F83F8', 
         paddingVertical: 15, // Espaçamento vertical interno.
         paddingHorizontal: 30, // Espaçamento horizontal interno.
         borderRadius: 10, // Arredonda as bordas do botão.

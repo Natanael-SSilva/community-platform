@@ -1,23 +1,16 @@
-# O nome do seu workflow. Ele aparecerá na aba "Actions" do seu repositório no GitHub.
 name:  Verificacao
 
-# Define os gatilhos (eventos) que iniciarão este workflow.
 on:
-  # Roda quando um 'push' é feito para as branches 'main' ou 'develop'.
   push:
     branches: [ main, develop ]
-  # Roda também quando um 'pull request' é aberto para as branches 'main' ou 'develop'.
   pull_request:
     branches: [ main, develop ]
-
-# Define os "trabalhos" (jobs) que o workflow irá executar.
 jobs:
-  # Nosso job se chama 'build-and-lint'. Você pode dar o nome que quiser.
+
   build-and-lint:
-    # Define o tipo de máquina virtual que será usada. 'ubuntu-latest' é a mais comum e recomendada.
+    # Define o tipo de máquina virtual que será usada.
     runs-on: ubuntu-latest
 
-    # Define a sequência de passos (steps) que o job executará.
     steps:
       # Passo 1: Baixa o código do seu repositório para a máquina virtual.
       # 'uses' indica que estamos usando uma "Action" pré-pronta. 'actions/checkout' é oficial.

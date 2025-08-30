@@ -1,4 +1,3 @@
-// Importa o React e os componentes necessários do React Native.
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, SafeAreaView } from 'react-native';
 
