@@ -7,12 +7,13 @@ import { styles } from './style';
 const WelcomeScreen = () => {
 
     const handleGetStarted = () => {
-        console.log("Botão 'Get Started' pressionado!");
+        console.log("Botão 'Vamos Começar' pressionado!");
     };
 
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
+                {/* eslint-disable-next-line @typescript-eslint/no-require-imports */}
                 <Image
                     source={require('../../assets/logo.png')}
                     style={styles.logo}
