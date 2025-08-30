@@ -13,7 +13,6 @@ const WelcomeScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
-                {/* eslint-disable-next-line @typescript-eslint/no-require-imports */}
                 <Image
                     source={require('../../assets/logo.png')}
                     style={styles.logo}

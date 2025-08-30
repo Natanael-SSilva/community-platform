@@ -10,15 +10,20 @@ export default defineConfig([
     plugins: { js },
     extends: ["js/recommended"],
     languageOptions: { globals: globals.browser },
+
+    // ADICIONAMOS A CHAVE 'rules' AQUI
+    rules: {
+      // Desliga permanentemente a regra que proíbe o uso de 'require()'.
+      "@typescript-eslint/no-require-imports": "off",
+      // Desliga a regra que exige que React esteja no escopo para JSX.
+      "react/react-in-jsx-scope": "off",
+    },
   },
   tseslint.configs.recommended,
   pluginReact.configs.flat.recommended,
-
-  // ADICIONE ESTE BLOCO NO FINAL
   {
     settings: {
       react: {
-        // Isso diz ao ESLint para detectar automaticamente a versão do React
         version: "detect",
       },
     },
