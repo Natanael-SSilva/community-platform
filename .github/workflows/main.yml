@@ -1,0 +1,43 @@
+# O nome do seu workflow. Ele aparecerá na aba "Actions" do seu repositório no GitHub.
+name:  Verificacao
+
+# Define os gatilhos (eventos) que iniciarão este workflow.
+on:
+  # Roda quando um 'push' é feito para as branches 'main' ou 'develop'.
+  push:
+    branches: [ main, develop ]
+  # Roda também quando um 'pull request' é aberto para as branches 'main' ou 'develop'.
+  pull_request:
+    branches: [ main, develop ]
+
+# Define os "trabalhos" (jobs) que o workflow irá executar.
+jobs:
+  # Nosso job se chama 'build-and-lint'. Você pode dar o nome que quiser.
+  build-and-lint:
+    # Define o tipo de máquina virtual que será usada. 'ubuntu-latest' é a mais comum e recomendada.
+    runs-on: ubuntu-latest
+
+    # Define a sequência de passos (steps) que o job executará.
+    steps:
+      # Passo 1: Baixa o código do seu repositório para a máquina virtual.
+      # 'uses' indica que estamos usando uma "Action" pré-pronta. 'actions/checkout' é oficial.
+      - name: 1. Verificando o código do repositório
+        uses: actions/checkout@v4
+
+      # Passo 2: Configura o ambiente Node.js na versão 18.
+      # É importante usar a mesma versão que você usa para desenvolver.
+      - name: 2. Configurando o ambiente Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # Passo 3: Instala as dependências do projeto.
+      # 'run' executa um comando no terminal da máquina virtual.
+      # Se você usa yarn, troque 'npm install' por 'yarn install'.
+      - name: 3. Instalando as dependências
+        run: npm install
+
+      # Passo 4: Roda o Linter para verificar a qualidade do código.
+      # Este comando depende de um script 'lint' no seu package.json.
+      - name: 4. Executando o Linter (Verificação de Código)
+        run: npm run lint
