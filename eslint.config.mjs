@@ -1,5 +1,4 @@
-import js from "@eslint/js";
-import globals from "globals";
+// REMOVEMOS os imports de 'js' e 'globals' que não eram usados.
 import tseslint from "typescript-eslint";
 import pluginReact from "eslint-plugin-react";
 import { defineConfig } from "eslint/config";
@@ -28,8 +27,7 @@ export default defineConfig([
     },
   },
 
-  // NOSSO BLOCO FINAL E ESPECÍFICO DE REGRAS
-  // Este bloco terá a prioridade final para arquivos TypeScript
+  // Bloco final e específico de regras para TypeScript
   {
     files: ["**/*.{ts,tsx}"],
     rules: {
