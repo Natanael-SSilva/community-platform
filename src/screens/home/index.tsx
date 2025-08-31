@@ -1,42 +1,33 @@
 import React from 'react';
-import { View, Text, Button, StyleSheet, SafeAreaView } from 'react-native';
-import { supabase } from '../../services/supabase';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppStackParamList } from '../../navigation/AppNavigator'; // Importamos o mapa de telas
+import { styles } from './style';
+
+// Tipagem para a navegação
+type HomeScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'MainTabs'>;
 
 const HomeScreen = () => {
-    // Função para fazer logout
-    const handleLogout = async () => {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-            console.error('Erro ao fazer logout:', error);
-        }
-    };
+    const navigation = useNavigation<HomeScreenNavigationProp>();
 
     return (
         <SafeAreaView style={styles.container}>
-            <Text style={styles.title}>Bem-vindo!</Text>
-            <Text style={styles.subtitle}>Você está na tela principal.</Text>
-            <Button title="Sair (Logout)" onPress={handleLogout} color="#FF6347" />
+            <Text style={styles.title}>Bem-vindo à Plataforma!</Text>
+            <Text style={styles.subtitle}>Anuncie seus serviços ou encontre a ajuda que precisa na sua comunidade.</Text>
+
+            <TouchableOpacity 
+                style={styles.button}
+                onPress={() => navigation.navigate('AddService')}
+            >
+                <Text style={styles.buttonText}>Anunciar um Serviço</Text>
+            </TouchableOpacity>
         </SafeAreaView>
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        marginBottom: 10,
-    },
-    subtitle: {
-        fontSize: 18,
-        color: '#666',
-        marginBottom: 30,
-    },
-});
+// Se o seu estilo já está em um arquivo separado, não precisa desta parte aqui.
+// Apenas garanta que o arquivo styles.ts esteja atualizado.
+// const styles = StyleSheet.create({ ... });
 
 export default HomeScreen;
