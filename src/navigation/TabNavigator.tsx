@@ -1,45 +1,56 @@
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons'; // Importando os ícones
+import { createBottomTabNavigator, BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 
-// Importando nossas telas
 import HomeScreen from '../screens/home';
 import SearchScreen from '../screens/search';
 import ProfileScreen from '../screens/profile';
 
-// Cria o navegador de abas
-const Tab = createBottomTabNavigator();
+// MELHORIA: Definimos o "mapa" de telas para o Tab Navigator
+export type TabParamList = {
+  Início: undefined;
+  Pesquisar: undefined;
+  Perfil: undefined;
+};
+
+const Tab = createBottomTabNavigator<TabParamList>();
 
 const TabNavigator = () => {
-    return (
-        <Tab.Navigator
-            screenOptions={({ route }) => ({
-                // Função para definir o ícone de cada aba
-                tabBarIcon: ({ focused, color, size }) => {
-                    let iconName;
+  return (
+    <Tab.Navigator
+      // MELHORIA: A tipagem agora é mais limpa e automática
+      screenOptions={({ route }: BottomTabScreenProps<TabParamList>) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: keyof typeof Ionicons.glyphMap;
 
-                    if (route.name === 'Início') {
-                        iconName = focused ? 'home' : 'home-outline';
-                    } else if (route.name === 'Pesquisar') {
-                        iconName = focused ? 'search' : 'search-outline';
-                    } else if (route.name === 'Perfil') {
-                        iconName = focused ? 'person' : 'person-outline';
-                    }
+          // MELHORIA: Usando 'switch' para deixar a lógica mais clara
+          switch (route.name) {
+            case 'Início':
+              iconName = focused ? 'home' : 'home-outline';
+              break;
+            case 'Pesquisar':
+              iconName = focused ? 'search' : 'search-outline';
+              break;
+            case 'Perfil':
+              iconName = focused ? 'person' : 'person-outline';
+              break;
+            default:
+              iconName = 'alert-circle-outline';
+              break;
+          }
 
-                    // Retorna o componente de ícone
-                    return <Ionicons name={iconName as any} size={size} color={color} />;
-                },
-                // Definindo as cores com base na nossa identidade visual
-                tabBarActiveTintColor: '#3F83F8', // Cor do ícone ativo (azul)
-                tabBarInactiveTintColor: 'gray', // Cor do ícone inativo
-                headerShown: false, // Esconde o cabeçalho de cada tela da aba
-            })}
-        >
-            <Tab.Screen name="Início" component={HomeScreen} />
-            <Tab.Screen name="Pesquisar" component={SearchScreen} />
-            <Tab.Screen name="Perfil" component={ProfileScreen} />
-        </Tab.Navigator>
-    );
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#3F83F8',
+        tabBarInactiveTintColor: 'gray',
+        headerShown: false,
+      })}
+    >
+      <Tab.Screen name="Início" component={HomeScreen} />
+      <Tab.Screen name="Pesquisar" component={SearchScreen} />
+      <Tab.Screen name="Perfil" component={ProfileScreen} />
+    </Tab.Navigator>
+  );
 };
 
 export default TabNavigator;
