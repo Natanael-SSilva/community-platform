@@ -3,15 +3,18 @@ import { StyleSheet, Dimensions } from 'react-native';
 const { width } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+    },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    // O container principal que permite a rolagem
-    scrollContainer: {
-        flexGrow: 1, // Permite que o conteúdo cresça e preencha o espaço
-        backgroundColor: '#FFFFFF',
+    // O container do conteúdo que será rolável
+    scrollContentContainer: {
+        paddingBottom: 20, // Garante um espaço no final do scroll
     },
     // Estilos para o Carrossel de Imagens
     imageCarousel: {
@@ -33,7 +36,7 @@ export const styles = StyleSheet.create({
         paddingVertical: 4,
         borderRadius: 15,
         fontSize: 12,
-        overflow: 'hidden', // Garante o arredondamento no iOS
+        overflow: 'hidden',
     },
     // Conteúdo principal da tela
     contentContainer: {
@@ -88,15 +91,59 @@ export const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
-    // Seção de Preço e Botão de Ação (Rodapé)
+    // Seção de Avaliações
+    reviewsContainer: {
+        marginTop: 20,
+    },
+    reviewItem: {
+        backgroundColor: '#F9F9F9',
+        padding: 15,
+        borderRadius: 8,
+        marginBottom: 10,
+    },
+    reviewHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 5,
+    },
+    reviewAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        marginRight: 10,
+        backgroundColor: '#EFEFEF',
+    },
+    reviewAuthor: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    reviewStars: {
+        flexDirection: 'row',
+        marginLeft: 'auto',
+    },
+    reviewComment: {
+        fontSize: 15,
+        color: '#333',
+        lineHeight: 22,
+    },
+    addReviewButton: {
+        backgroundColor: '#48BB78',
+        paddingVertical: 15,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginTop: 10,
+    },
+    // Rodapé fixo
     footer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 20,
+        paddingHorizontal: 20,
+        paddingVertical: 15,
         borderTopWidth: 1,
         borderTopColor: '#EEE',
-        backgroundColor: '#FFFFFF', // Garante um fundo branco
+        backgroundColor: '#FFFFFF',
+        paddingBottom: 25, // Espaço extra para a barra de navegação do sistema
     },
     priceLabel: {
         fontSize: 14,

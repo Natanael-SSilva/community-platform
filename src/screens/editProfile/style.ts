@@ -66,4 +66,25 @@ export const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#FFF',
 },
+    // Estilo para o campo de localização clicável
+    locationButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 50,
+        backgroundColor: '#FFFFFF',
+        borderColor: '#CCCCCC',
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 15,
+    },
+    locationText: {
+        flex: 1,
+        fontSize: 16,
+        color: '#333',
+    },
+    locationPlaceholder: {
+        flex: 1,
+        fontSize: 16,
+        color: '#999',
+    },
 });

@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, SafeAreaView, FlatList, Image, Alert, ActivityIndicator, TextInput, TouchableOpacity, Modal } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../../services/supabase';
 import { styles } from './style';
@@ -41,7 +41,7 @@ const SearchScreen = () => {
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [tempSelectedCategories, setTempSelectedCategories] = useState<number[]>([]);
 
-    // Função para buscar os serviços, com a lógica de paginação corrigida
+    // Função para buscar os serviços
     const fetchServices = async (isNewSearch = false, pageToFetch: number) => {
         if (isNewSearch) {
             setServices([]);
@@ -76,13 +76,15 @@ const SearchScreen = () => {
         }
     };
     
-    // Efeito para buscar na carga inicial ou quando os filtros de categoria mudam
-    useEffect(() => {
-        setLoading(true);
-        fetchServices(true, 0).finally(() => setLoading(false));
-    }, [selectedCategories]);
+    // Hook para buscar dados sempre que a tela entra em foco
+    useFocusEffect(
+        useCallback(() => {
+            setLoading(true);
+            fetchServices(true, 0).finally(() => setLoading(false));
+        }, [selectedCategories]) // A busca será refeita se os filtros de categoria mudarem
+    );
 
-    // Função para carregar mais serviços ao clicar no botão "Ver mais"
+    // Função para carregar mais serviços
     const handleLoadMore = () => {
         if (!loadingMore && hasMore) {
             setLoadingMore(true);
@@ -102,14 +104,14 @@ const SearchScreen = () => {
         setModalVisible(true);
     };
 
-    // Aplica os filtros selecionados e fecha o modal
+    // Aplica os filtros selecionados
     const applyFilters = () => {
-        setPage(0); // Reseta a página para iniciar uma nova busca com os filtros
+        setPage(0);
         setSelectedCategories(tempSelectedCategories);
         setModalVisible(false);
     };
 
-    // Componente para renderizar cada cartão de serviço
+    // Componente para renderizar cada cartão
     const renderServiceCard = ({ item }: { item: Service }) => (
         <TouchableOpacity onPress={() => navigation.navigate('ServiceDetail', { serviceId: item.id })}>
             <View style={styles.card}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // CORREÇÃO: Importação correta do React e seus Hooks
+import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, TextInput, TouchableOpacity, Alert, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { supabase } from '../../services/supabase';
 import { styles } from './style';
@@ -7,7 +7,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { decode } from 'base64-arraybuffer';
 
-// Definimos os tipos para o TypeScript
 type Category = {
     id: number;
     name: string;
@@ -19,7 +18,6 @@ type SelectedImage = {
 };
 
 const AddServiceScreen = () => {
-    // Estados para os campos do formulário
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
@@ -29,7 +27,6 @@ const AddServiceScreen = () => {
     const [loading, setLoading] = useState(false);
     const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
 
-    // Busca as categorias do banco de dados quando a tela carrega
     useEffect(() => {
         const fetchCategories = async () => {
             const { data, error } = await supabase
@@ -74,12 +71,12 @@ const AddServiceScreen = () => {
 
         if (!result.canceled && result.assets && result.assets[0].base64) {
             const asset = result.assets[0];
-            setSelectedImages((prevImages: SelectedImage[]) => [...prevImages, { uri: asset.uri, base64: asset.base64! }]);
+            setSelectedImages(prevImages => [...prevImages, { uri: asset.uri, base64: asset.base64! }]);
         }
     };
     
     const handleRemoveImage = (uriToRemove: string) => {
-        setSelectedImages((prevImages: SelectedImage[]) => prevImages.filter((image: SelectedImage) => image.uri !== uriToRemove));
+        setSelectedImages(prevImages => prevImages.filter(image => image.uri !== uriToRemove));
     };
 
     const handleSaveService = async () => {
@@ -92,6 +89,19 @@ const AddServiceScreen = () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("Usuário não encontrado.");
+
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('location')
+                .eq('id', user.id)
+                .single();
+            
+            if (profileError) throw profileError;
+            if (!profileData?.location) {
+                Alert.alert("Localização não definida", "Por favor, defina sua localização no seu perfil antes de cadastrar um serviço.");
+                setLoading(false);
+                return;
+            }
 
             const uploadedPhotoUrls: string[] = [];
 
@@ -123,6 +133,7 @@ const AddServiceScreen = () => {
                     price: price ? parseFloat(price) : null,
                     availability,
                     photo_urls: uploadedPhotoUrls,
+                    location: profileData.location,
                 });
 
             if (insertError) throw insertError;
@@ -155,7 +166,7 @@ const AddServiceScreen = () => {
                         selectedValue={selectedCategory}
                         onValueChange={(itemValue) => setSelectedCategory(itemValue as number)}
                     >
-                        {categories.map((category: Category) => ( // CORREÇÃO: Adicionado o tipo
+                        {categories.map((category) => (
                             <Picker.Item key={category.id} label={category.name} value={category.id} />
                         ))}
                     </Picker>
@@ -170,7 +181,7 @@ const AddServiceScreen = () => {
                 <View style={styles.imageUploadContainer}>
                     <Text style={styles.label}>Fotos do Serviço (até 4)</Text>
                     <View style={styles.imagePreviewContainer}>
-                        {selectedImages.map((image: SelectedImage, index: number) => ( // CORREÇÃO: Adicionados os tipos
+                        {selectedImages.map((image, index) => (
                             <View key={index}>
                                 <Image source={{ uri: image.uri }} style={styles.imagePreview} />
                                 <TouchableOpacity onPress={() => handleRemoveImage(image.uri)} style={styles.imageRemoveButton}>
