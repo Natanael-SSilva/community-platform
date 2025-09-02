@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, SafeAreaView, Modal, ActivityIndicator } from 'react-native';
+import { 
+    View, Text, TextInput, TouchableOpacity, SafeAreaView, Modal, 
+    ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Alert, StatusBar 
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
-// CORREÇÃO: O caminho para o estilo deve ser relativo à pasta 'register'
-// Certifique-se que o arquivo style.ts está em 'src/screens/register/style.ts'
-import { styles } from '../register/style';
+import { styles } from './style';
+import { AuthStackParamList } from '../../navigation/AuthNavigator';
 
-const LoginScreen = () => {
-    // Seus states continuam os mesmos
+type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+
+/**
+ * @description
+ * Tela de Login. Permite que usuários existentes acessem suas contas.
+ * A tela se ajusta automaticamente quando o teclado aparece.
+ */
+const LoginScreen: React.FC = () => {
+    const navigation = useNavigation<LoginScreenNavigationProp>();
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -15,6 +27,9 @@ const LoginScreen = () => {
     const [error, setError] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
 
+    /**
+     * Tenta autenticar o usuário com o e-mail e senha fornecidos.
+     */
     const handleLogin = async () => {
         setError('');
         if (!email || !password) {
@@ -29,51 +44,83 @@ const LoginScreen = () => {
         });
 
         if (error) {
-            // Supabase retorna um erro específico se o email não for confirmado
-            if (error.message === 'Email not confirmed') {
-                setError('Por favor, confirme seu e-mail antes de fazer o login.');
-            } else {
-                setError('E-mail ou senha inválidos.');
-            }
+            setError(error.message === 'Email not confirmed' ? 'Por favor, confirme seu e-mail.' : 'E-mail ou senha inválidos.');
         } else {
-            // SUCESSO! Mostra o modal com check verde
             setShowSuccess(true);
-            // O listener no App.tsx cuidará da navegação após a sessão ser atualizada.
-            // O modal vai desaparecer quando o componente for desmontado pela navegação.
         }
         setLoading(false);
     };
 
+    /**
+     * Navega para a tela de Cadastro.
+     */
+    const navigateToRegister = () => {
+        navigation.navigate('Register');
+    };
+
+    /**
+     * Navega para a tela de recuperação de senha.
+     */
+    const navigateToForgotPassword = () => {
+        navigation.navigate('ForgotPassword');
+    };
+
     return (
-        <SafeAreaView style={styles.container}>
-            {/* Modal de sucesso foi mantido aqui para o feedback visual no login */}
-            <Modal transparent={true} visible={showSuccess} animationType="fade">
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalView}>
-                        <Ionicons name="checkmark-circle" size={80} color="#48BB78" />
+        <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="dark-content" />
+            <KeyboardAvoidingView 
+                style={{ flex: 1 }}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+            >
+                <Modal transparent={true} visible={showSuccess} animationType="fade">
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalView}>
+                            <Ionicons name="checkmark-circle" size={80} color="#48BB78" />
+                        </View>
                     </View>
-                </View>
-            </Modal>
+                </Modal>
+                
+                <ScrollView 
+                    contentContainerStyle={styles.scrollContainer} 
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <View style={styles.headerContainer}>
+                        <Text style={styles.title}>Bem-vindo(a) de volta!</Text>
+                        <Text style={styles.subtitle}>Acesse sua conta para continuar.</Text>
+                    </View>
 
-            {/* O resto do seu JSX continua exatamente o mesmo */}
-            <Text style={styles.title}>Acesse sua Conta</Text>
-            
-            <View style={styles.inputContainer}>
-                <TextInput style={styles.input} placeholder="E-mail" value={email} onChangeText={text => { setEmail(text); setError(''); }} keyboardType="email-address" autoCapitalize="none" />
-            </View>
-            
-            <View style={styles.inputContainer}>
-                <TextInput style={styles.input} placeholder="Senha" value={password} onChangeText={text => { setPassword(text); setError(''); }} secureTextEntry={!isPasswordVisible} />
-                <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
-                    <Ionicons name={isPasswordVisible ? "eye-off" : "eye"} size={24} color="gray" style={styles.icon} />
-                </TouchableOpacity>
-            </View>
+                    <View style={styles.formContainer}>
+                        <View style={styles.inputContainer}>
+                            <TextInput style={styles.input} placeholder="E-mail" value={email} onChangeText={text => { setEmail(text); setError(''); }} keyboardType="email-address" autoCapitalize="none" />
+                        </View>
+                        
+                        <View style={styles.inputContainer}>
+                            <TextInput style={styles.input} placeholder="Senha" value={password} onChangeText={text => { setPassword(text); setError(''); }} secureTextEntry={!isPasswordVisible} />
+                            <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+                                <Ionicons name={isPasswordVisible ? "eye-off" : "eye"} size={24} color="#A0AEC0" style={styles.icon} />
+                            </TouchableOpacity>
+                        </View>
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
-                {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Entrar</Text>}
-            </TouchableOpacity>
+                        <TouchableOpacity style={styles.forgotPasswordButton} onPress={navigateToForgotPassword}>
+                            <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.footerContainer}>
+                        <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
+                            {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.loginButtonText}>Entrar</Text>}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.signupButton} onPress={navigateToRegister}>
+                            <Text style={styles.signupText}>
+                                Não tem uma conta? <Text style={styles.signupLink}>Cadastre-se</Text>
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };

@@ -1,52 +1,66 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, SafeAreaView } from 'react-native';
-// Importa o tipo 'NativeStackNavigationProp' para nos dar autocompletar e segurança de tipos
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { View, Text, Image, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { styles } from './style';
+import { AuthStackParamList } from '../../navigation/AuthNavigator';
 
-// Define os tipos das telas que nossa navegação pode acessar
-type AuthStackParamList = {
-    Welcome: undefined;
-    Login: undefined;
-    Register: undefined;
-};
-
-// Define o tipo da prop de navegação para esta tela
 type WelcomeScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
 
-const WelcomeScreen = () => {
-    // Pega o "controle remoto" da navegação
+/**
+ * A tela de boas-vindas é a primeira tela que um usuário não autenticado vê.
+ * Ela apresenta o propósito do aplicativo e fornece as ações primárias:
+ * fazer login ou criar uma nova conta.
+ * @returns {React.FC} O componente da tela de boas-vindas.
+ */
+const WelcomeScreen: React.FC = () => {
     const navigation = useNavigation<WelcomeScreenNavigationProp>();
+
+    /**
+     * Navega para a tela de Login.
+     * Esta função encapsula a ação de navegação para melhorar a legibilidade
+     * e facilitar futuras manutenções (ex: adicionar um evento de analytics).
+     */
+    const navigateToLogin = () => {
+        navigation.navigate('Login');
+    };
+
+    /**
+     * Navega para a tela de Cadastro (Register).
+     */
+    const navigateToRegister = () => {
+        navigation.navigate('Register');
+    };
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.content}>
+            <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+            <View style={styles.contentContainer}>
                 <Image
-                    // eslint-disable-next-line @typescript-eslint/no-require-imports
                     source={require('../../assets/logo.png')}
                     style={styles.logo}
                 />
-                <Text style={styles.title}>Plataforma de Serviços Comunitários</Text>
-                <Text style={styles.subtitle}>Conectando vizinhos, fortalecendo a comunidade.</Text>
+                <Text style={styles.title}>Sua comunidade, conectada.</Text>
+                <Text style={styles.subtitle}>
+                    Encontre ajuda ou ofereça seus talentos. Fortaleça a economia local com um toque.
+                </Text>
             </View>
 
-            <View style={styles.buttonContainer}>
-                {/* Botão para navegar para a tela de Login */}
+            <View style={styles.footer}>
                 <TouchableOpacity 
-                    style={styles.button} 
-                    onPress={() => navigation.navigate('Login')}
+                    style={[styles.button, styles.buttonPrimary]} 
+                    onPress={navigateToLogin}
+                    activeOpacity={0.8}
                 >
-                    <Text style={styles.buttonText}>Fazer Login</Text>
+                    <Text style={styles.buttonTextPrimary}>Fazer Login</Text>
                 </TouchableOpacity>
 
-                {/* Botão para navegar para a tela de Cadastro */}
                 <TouchableOpacity 
-                    style={[styles.button, styles.buttonOutline]} 
-                    onPress={() => navigation.navigate('Register')}
+                    style={[styles.button, styles.buttonSecondary]} 
+                    onPress={navigateToRegister}
+                    activeOpacity={0.8}
                 >
-                    <Text style={[styles.buttonText, styles.buttonOutlineText]}>Criar Conta</Text>
+                    <Text style={styles.buttonTextSecondary}>Criar Conta</Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>

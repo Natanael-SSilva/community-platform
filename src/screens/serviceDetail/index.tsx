@@ -1,45 +1,21 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, SafeAreaView, Image, Alert, ActivityIndicator, FlatList, ScrollView, TouchableOpacity } from 'react-native';
-import { useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
+import { useRoute, RouteProp, useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../../services/supabase';
 import { AppStackParamList } from '../../navigation/AppNavigator';
 import { styles } from './style';
 import ReviewModal from '../../components/ReviewModal';
 import { Ionicons } from '@expo/vector-icons';
 
-// Tipos para os dados que vamos buscar
-type Review = {
-    id: number;
-    rating: number;
-    comment: string;
-    profiles: {
-        full_name: string;
-        avatar_url: string;
-    } | null;
-};
-
-type ServiceDetails = {
-    id: number;
-    title: string;
-    description: string;
-    price: number;
-    photo_urls: string[];
-    availability: string;
-    profiles: {
-        full_name: string;
-        avatar_url: string;
-    } | null;
-    categories: {
-        name: string;
-    } | null;
-    reviews: Review[];
-};
-
-// Tipo para os parâmetros recebidos da rota
+// Tipos para os dados
+type Review = { id: number; rating: number; comment: string; profiles: { full_name: string; avatar_url: string; } | null; };
+type ServiceDetails = { id: number; title: string; description: string; price: number; photo_urls: string[]; availability: string; profiles: { id: string; full_name: string; avatar_url: string; } | null; categories: { name: string; } | null; reviews: Review[]; };
 type ServiceDetailRouteProp = RouteProp<AppStackParamList, 'ServiceDetail'>;
 
 const ServiceDetailScreen = () => {
     const route = useRoute<ServiceDetailRouteProp>();
+    const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
     const { serviceId } = route.params;
 
     const [service, setService] = useState<ServiceDetails | null>(null);
@@ -49,20 +25,9 @@ const ServiceDetailScreen = () => {
 
     const fetchServiceDetails = async () => {
         if (!serviceId) return;
-        
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('services')
-                .select(`
-                    *,
-                    profiles ( full_name, avatar_url ),
-                    categories ( name ),
-                    reviews ( id, rating, comment, profiles ( full_name, avatar_url ) )
-                `)
-                .eq('id', serviceId)
-                .single();
-            
+            const { data, error } = await supabase.from('services').select(`*, profiles ( id, full_name, avatar_url ), categories ( name ), reviews ( id, rating, comment, profiles ( full_name, avatar_url ) )`).eq('id', serviceId).single();
             if (error) throw error;
             setService(data as any);
         } catch (error: any) {
@@ -72,72 +37,60 @@ const ServiceDetailScreen = () => {
         }
     };
 
-    useFocusEffect(
-        useCallback(() => {
-            fetchServiceDetails();
-        }, [serviceId])
-    );
+    useFocusEffect(useCallback(() => { fetchServiceDetails(); }, [serviceId]));
     
     const handleSubmitReview = async (rating: number, comment: string) => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("Você precisa estar logado para avaliar.");
-
-            const { error } = await supabase
-                .from('reviews')
-                .insert({
-                    service_id: serviceId,
-                    user_id: user.id,
-                    rating,
-                    comment,
-                });
-            
+            const { error } = await supabase.from('reviews').insert({ service_id: serviceId, user_id: user.id, rating, comment });
             if (error) throw error;
-            
             Alert.alert("Sucesso", "Sua avaliação foi enviada!");
-            fetchServiceDetails(); // Recarrega os dados para mostrar a nova avaliação
+            fetchServiceDetails();
         } catch (error: any) {
             Alert.alert("Erro ao avaliar", error.message);
         }
     };
 
-    if (loading) {
-        return <ActivityIndicator style={styles.loadingContainer} size="large" color="#3F83F8" />;
-    }
+    const handleStartConversation = async () => {
+        if (!service?.profiles?.id) return;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Usuário não logado");
+            if (user.id === service.profiles.id) {
+                Alert.alert("Ação inválida", "Você não pode iniciar uma conversa consigo mesmo.");
+                return;
+            }
 
-    if (!service) {
-        return <View style={styles.loadingContainer}><Text>Serviço não encontrado.</Text></View>;
-    }
+            const { data: conversationId, error } = await supabase.rpc('get_or_create_conversation', {
+                participant1_id_input: user.id,
+                participant2_id_input: service.profiles.id
+            });
+
+            if (error) throw error;
+            
+            if (conversationId) {
+                navigation.navigate('Chat', {
+                    conversationId: conversationId,
+                    recipient: service.profiles as any
+                });
+            }
+        } catch (error: any) {
+            Alert.alert("Erro ao iniciar conversa", error.message);
+        }
+    };
+
+    if (loading) return <ActivityIndicator style={styles.loadingContainer} size="large" color="#3F83F8" />;
+    if (!service) return <View style={styles.loadingContainer}><Text>Serviço não encontrado.</Text></View>;
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <ReviewModal
-                visible={isReviewModalVisible}
-                onClose={() => setReviewModalVisible(false)}
-                onSubmit={handleSubmitReview}
-            />
-            {/* O ScrollView agora ocupa o espaço flexível */}
+            <ReviewModal visible={isReviewModalVisible} onClose={() => setReviewModalVisible(false)} onSubmit={handleSubmitReview} />
             <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContentContainer}>
-                {/* Carrossel de Imagens */}
                 <View>
-                    <FlatList
-                        data={service.photo_urls}
-                        renderItem={({ item }) => <Image source={{ uri: item }} style={styles.image} />}
-                        keyExtractor={(item, index) => index.toString()}
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                        onScroll={(e) => {
-                            const index = Math.round(e.nativeEvent.contentOffset.x / styles.image.width);
-                            setCurrentImageIndex(index);
-                        }}
-                    />
-                    {service.photo_urls && service.photo_urls.length > 1 && (
-                        <Text style={styles.imageCounter}>{currentImageIndex + 1} / {service.photo_urls.length}</Text>
-                    )}
+                    <FlatList data={service.photo_urls} renderItem={({ item }) => <Image source={{ uri: item }} style={styles.image} />} keyExtractor={(item, index) => index.toString()} horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={(e) => { const index = Math.round(e.nativeEvent.contentOffset.x / styles.image.width); setCurrentImageIndex(index); }} />
+                    {service.photo_urls && service.photo_urls.length > 1 && (<Text style={styles.imageCounter}>{currentImageIndex + 1} / {service.photo_urls.length}</Text>)}
                 </View>
-
-                {/* Conteúdo Principal */}
                 <View style={styles.contentContainer}>
                     <Text style={styles.categoryTag}>{service.categories?.name || 'Categoria'}</Text>
                     <Text style={styles.title}>{service.title}</Text>
@@ -151,8 +104,6 @@ const ServiceDetailScreen = () => {
                     <Text style={styles.sectionTitle}>Detalhes do serviço</Text>
                     <Text style={styles.description}>{service.description || 'Nenhuma descrição fornecida.'}</Text>
                 </View>
-                
-                {/* Seção de Avaliações */}
                 <View style={styles.contentContainer}>
                     <Text style={styles.sectionTitle}>Avaliações</Text>
                     <TouchableOpacity style={styles.addReviewButton} onPress={() => setReviewModalVisible(true)}>
@@ -172,20 +123,16 @@ const ServiceDetailScreen = () => {
                                     <Text style={styles.reviewComment}>{review.comment}</Text>
                                 </View>
                             ))
-                        ) : (
-                            <Text style={{textAlign: 'center', marginTop: 15, color: '#666'}}>Este serviço ainda não tem avaliações. Seja o primeiro!</Text>
-                        )}
+                        ) : (<Text style={{textAlign: 'center', marginTop: 15, color: '#666'}}>Este serviço ainda não tem avaliações. Seja o primeiro!</Text>)}
                     </View>
                 </View>
             </ScrollView>
-            
-            {/* O Rodapé agora está FORA do ScrollView, posicionado abaixo dele */}
             <View style={styles.footer}>
                 <View>
                     <Text style={styles.priceLabel}>Preço médio estimado</Text>
                     <Text style={styles.priceValue}>R$ {service.price?.toFixed(2) || 'A combinar'}</Text>
                 </View>
-                <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert("Contato", "Funcionalidade de contato em desenvolvimento.")}>
+                <TouchableOpacity style={styles.actionButton} onPress={handleStartConversation}>
                     <Text style={styles.actionButtonText}>Pedir Orçamento</Text>
                 </TouchableOpacity>
             </View>
