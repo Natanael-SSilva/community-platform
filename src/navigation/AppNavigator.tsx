@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { createNativeStackNavigator, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { View, ActivityIndicator } from 'react-native';
 import { supabase } from '../services/supabase';
-// Importação de todas as telas que este navegador controla
+import { AppStackParamList } from './types'; // Importa do arquivo central
+
+// Importação dos navegadores e telas que este navegador gerencia
 import TabNavigator from './TabNavigator';
 import EditProfileScreen from '../screens/editProfile';
 import ChangePasswordScreen from '../screens/changePassword';
@@ -11,32 +13,14 @@ import ServiceDetailScreen from '../screens/serviceDetail';
 import ChatScreen from '../screens/chat';
 import CompleteProfileScreen from '../screens/completeProfile';
 
-/**
- * @description
- * Mapa de rotas para a área logada do aplicativo.
- * Centralizar este tipo é uma prática de "Clean Code" que garante consistência.
- */
-export type AppStackParamList = {
-  MainTabs: undefined;
-  CompleteProfile: undefined;
-  EditProfile: undefined;
-  ChangePassword: undefined;
-  AddService: undefined;
-  ServiceDetail: { serviceId: number };
-  Chat: {
-    conversationId: number;
-    recipient: { id: string; full_name: string; avatar_url: string; };
-  };
-};
-
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
 /**
  * @description
- * Navegador para usuários autenticados.
- * Ele verifica se o perfil do usuário está completo para definir a rota inicial.
- * Se o perfil estiver incompleto, força o fluxo de onboarding (`CompleteProfile`).
- * Caso contrário, direciona para a tela principal (`MainTabs`).
+ * Navegador principal para usuários autenticados.
+ * Este componente verifica se o perfil do usuário está completo para
+ * definir a rota inicial: a tela para completar o perfil ou a tela principal com abas.
+ * @returns {React.FC} O navegador da pilha principal do app.
  */
 const AppNavigator: React.FC = () => {
     const [isProfileComplete, setProfileComplete] = useState<boolean | null>(null);
@@ -45,24 +29,19 @@ const AppNavigator: React.FC = () => {
         const checkProfile = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                const { data: profile, error } = await supabase
+                const { data: profile } = await supabase
                     .from('profiles')
-                    .select('full_name, phone, location') // Verificamos campos que só são preenchidos no onboarding
+                    .select('full_name, phone, location')
                     .eq('id', user.id)
                     .single();
                 
-                // O perfil é considerado completo se todos os campos essenciais do onboarding existirem
-                if (profile && profile.full_name && profile.phone && profile.location) {
-                    setProfileComplete(true);
-                } else {
-                    setProfileComplete(false);
-                }
+                setProfileComplete(!!(profile && profile.full_name && profile.phone && profile.location));
             }
         };
         checkProfile();
     }, []);
 
-    // Exibe um loading enquanto a verificação do perfil está em andamento
+    // Exibe um loading enquanto o perfil é verificado.
     if (isProfileComplete === null) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -73,7 +52,6 @@ const AppNavigator: React.FC = () => {
 
     return (
         <Stack.Navigator 
-            // A rota inicial é definida dinamicamente com base na verificação do perfil
             initialRouteName={isProfileComplete ? "MainTabs" : "CompleteProfile"}
         >
             <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} options={{ headerShown: false }} />

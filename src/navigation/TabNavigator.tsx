@@ -1,23 +1,23 @@
 import React from 'react';
 import { createBottomTabNavigator, BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { TabParamList } from './types'; // Importa do arquivo central
 
+// Importação das telas que este navegador gerencia
 import HomeScreen from '../screens/home';
 import SearchScreen from '../screens/search';
 import ProfileScreen from '../screens/profile';
-import ConversationsScreen from '../screens/conversations'; // 1. Importe a nova tela
-
-// 2. Adicione a nova tela ao mapa de telas
-export type TabParamList = {
-  Início: undefined;
-  Pesquisar: undefined;
-  Mensagens: undefined; // Nova tela
-  Perfil: undefined;
-};
+import ConversationsScreen from '../screens/conversations';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
-const TabNavigator = () => {
+/**
+ * @description
+ * Componente de navegação que gerencia a barra de abas principal do aplicativo.
+ * É a interface principal para um usuário autenticado.
+ * @returns {React.FC} O navegador de abas.
+ */
+const TabNavigator: React.FC = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }: BottomTabScreenProps<TabParamList>) => ({
@@ -31,7 +31,6 @@ const TabNavigator = () => {
             case 'Pesquisar':
               iconName = focused ? 'search' : 'search-outline';
               break;
-            // 3. Adicione o ícone para a nova tela
             case 'Mensagens':
               iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
               break;
@@ -52,7 +51,6 @@ const TabNavigator = () => {
     >
       <Tab.Screen name="Início" component={HomeScreen} />
       <Tab.Screen name="Pesquisar" component={SearchScreen} />
-      {/* 4. Adicione o componente da tela à barra de abas */}
       <Tab.Screen name="Mensagens" component={ConversationsScreen} />
       <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>

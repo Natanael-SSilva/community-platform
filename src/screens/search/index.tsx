@@ -1,100 +1,81 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, SafeAreaView, FlatList, Image, Alert, ActivityIndicator, TextInput, TouchableOpacity, Modal } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, SafeAreaView, FlatList, Alert, ActivityIndicator, TextInput, TouchableOpacity, Modal, Keyboard, StatusBar } from 'react-native';
 import { supabase } from '../../services/supabase';
 import { styles } from './style';
 import { Ionicons } from '@expo/vector-icons';
-import { AppStackParamList } from '../../navigation/AppNavigator';
+import ServiceCard, { ServiceCardData } from '../../components/ServiceCard';
+import useDebounce from '../../hooks/useDebounce';
+import PristineSearch from '../../components/PristineSearch';
 
-// Tipos para os dados
-type Service = {
-    id: number;
-    title: string;
-    price: number;
-    photo_urls: string[];
-    profiles: { full_name: string }[] | null;
-};
-type Category = {
-    id: number;
-    name: string;
-};
+type Category = { id: number; name: string; };
 
-const PAGE_SIZE = 10;
-
-const SearchScreen = () => {
-    // Tipagem para a navegação
-    type SearchScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'MainTabs'>;
-    const navigation = useNavigation<SearchScreenNavigationProp>();
-
-    // Estados do componente
-    const [services, setServices] = useState<Service[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(0);
-    const [hasMore, setHasMore] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
+/**
+ * @description
+ * Tela de busca de serviços. Gerencia múltiplos estados (inicial, digitação, resultados)
+ * e envia os filtros de busca e categoria para o backend para uma busca performática.
+ */
+const SearchScreen: React.FC = () => {
+    const [services, setServices] = useState<ServiceCardData[]>([]);
+    const [loading, setLoading] = useState(false);
     
-    // Estados para os filtros
-    const [searchText, setSearchText] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [suggestions, setSuggestions] = useState<Pick<ServiceCardData, 'id' | 'title'>[]>([]);
+    const [isTyping, setIsTyping] = useState(false);
+    const debouncedSearchTerm = useDebounce(searchTerm, 400);
+
+    const [isPristine, setIsPristine] = useState(true);
     const [isModalVisible, setModalVisible] = useState(false);
     const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [tempSelectedCategories, setTempSelectedCategories] = useState<number[]>([]);
 
-    // Função para buscar os serviços
-    const fetchServices = async (isNewSearch = false, pageToFetch: number) => {
-        if (isNewSearch) {
-            setServices([]);
-            setHasMore(true);
-        }
-
+    /**
+     * Busca os serviços no backend, aplicando os filtros atuais de texto e categoria.
+     */
+    const executeSearch = useCallback(async (searchTextValue: string, categoryIds: number[]) => {
+        setIsPristine(false);
+        setIsTyping(false);
+        Keyboard.dismiss();
+        setLoading(true);
         try {
-            const from = pageToFetch * PAGE_SIZE;
-            const to = from + PAGE_SIZE - 1;
-
-            let query = supabase
-                .from('services')
-                .select(`id, title, price, photo_urls, profiles ( full_name )`, { count: 'exact' })
-                .order('created_at', { ascending: false })
-                .range(from, to);
-
-            if (searchText) query = query.ilike('title', `%${searchText}%`);
-            if (selectedCategories.length > 0) query = query.in('category_id', selectedCategories);
-
-            const { data, error, count } = await query;
-
+            const { data, error } = await supabase.rpc('get_services_with_ratings', {
+                search_term: searchTextValue.trim() === '' ? null : searchTextValue,
+                category_ids_filter: categoryIds.length === 0 ? null : categoryIds
+            });
             if (error) throw error;
-
-            if (data) {
-                setServices(prev => isNewSearch ? data : [...prev, ...data]);
-                if (data.length < PAGE_SIZE || (count && services.length + data.length >= count)) {
-                    setHasMore(false);
-                }
-            }
+            setServices(data || []);
         } catch (error: any) {
             Alert.alert("Erro ao buscar serviços", error.message);
+        } finally {
+            setLoading(false);
         }
-    };
+    }, []);
     
-    // Hook para buscar dados sempre que a tela entra em foco
-    useFocusEffect(
-        useCallback(() => {
-            setLoading(true);
-            fetchServices(true, 0).finally(() => setLoading(false));
-        }, [selectedCategories]) // A busca será refeita se os filtros de categoria mudarem
-    );
-
-    // Função para carregar mais serviços
-    const handleLoadMore = () => {
-        if (!loadingMore && hasMore) {
-            setLoadingMore(true);
-            const nextPage = page + 1;
-            setPage(nextPage);
-            fetchServices(false, nextPage).finally(() => setLoadingMore(false));
+    useEffect(() => {
+        if (debouncedSearchTerm.trim().length > 1 && isTyping) {
+            const fetchSuggestions = async () => {
+                const { data, error } = await supabase.from('services').select('id, title').ilike('title', `%${debouncedSearchTerm}%`).limit(5);
+                if (error) console.error("Erro ao buscar sugestões:", error);
+                else setSuggestions(data || []);
+            };
+            fetchSuggestions();
+        } else {
+            setSuggestions([]);
         }
+    }, [debouncedSearchTerm, isTyping]);
+    
+    const handleSuggestionPress = (suggestionTitle: string) => {
+        setSearchTerm(suggestionTitle);
+        executeSearch(suggestionTitle, selectedCategories);
     };
 
-    // Abre o modal de filtros
+    const handleCategoryPress = (categoryId: number, categoryName: string) => {
+        const newSelectedCategories = [categoryId];
+        setSelectedCategories(newSelectedCategories);
+        setSearchTerm(categoryName);
+        executeSearch(categoryName, newSelectedCategories);
+    };
+
     const openFilterModal = async () => {
         if (availableCategories.length === 0) {
             const { data } = await supabase.from('categories').select('id, name');
@@ -104,46 +85,59 @@ const SearchScreen = () => {
         setModalVisible(true);
     };
 
-    // Aplica os filtros selecionados
     const applyFilters = () => {
-        setPage(0);
         setSelectedCategories(tempSelectedCategories);
         setModalVisible(false);
+        executeSearch(searchTerm, tempSelectedCategories);
     };
 
-    // Componente para renderizar cada cartão
-    const renderServiceCard = ({ item }: { item: Service }) => (
-        <TouchableOpacity onPress={() => navigation.navigate('ServiceDetail', { serviceId: item.id })}>
-            <View style={styles.card}>
-                <Image
-                    source={{ uri: item.photo_urls?.[0] || 'https://via.placeholder.com/150' }}
-                    style={styles.cardImage}
-                />
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardProvider}>Oferecido por: {item.profiles?.[0]?.full_name || 'Usuário'}</Text>
-                {item.price != null && <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>}
-            </View>
-        </TouchableOpacity>
-    );
-
-    if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color="#3F83F8" />;
+    /**
+     * Decide qual conteúdo renderizar com base no estado da busca.
+     */
+    const renderContent = () => {
+        if (loading) {
+            return <ActivityIndicator style={{ flex: 1 }} size="large" color="#3F83F8" />;
+        }
+        if (isTyping) {
+            return (
+                <View style={styles.suggestionsContainer}>
+                    <FlatList
+                        data={suggestions}
+                        keyExtractor={(item) => item.id.toString()}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity style={styles.suggestionItem} onPress={() => handleSuggestionPress(item.title)}>
+                                <Ionicons name="search-outline" size={20} color="#666" />
+                                <Text style={styles.suggestionText}>{item.title}</Text>
+                            </TouchableOpacity>
+                        )}
+                        keyboardShouldPersistTaps="handled"
+                    />
+                </View>
+            );
+        }
+        if (isPristine) {
+            return <PristineSearch onCategoryPress={handleCategoryPress} />;
+        }
+        return (
+            <FlatList
+                data={services}
+                renderItem={({ item }) => <ServiceCard service={item} />}
+                keyExtractor={(item) => item.id.toString()}
+                contentContainerStyle={styles.listContentContainer}
+                ListEmptyComponent={<View style={styles.emptyContainer}><Ionicons name="search-circle-outline" size={60} color="#CBD5E0" style={styles.emptyIcon} /><Text style={styles.emptyTitle}>Nenhum serviço encontrado</Text><Text style={styles.emptySubtitle}>Tente ajustar sua busca ou filtros.</Text></View>}
+            />
+        );
+    };
 
     return (
-        <SafeAreaView style={styles.container}>
-            {/* Modal de Filtro de Categorias */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={isModalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
+        <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="dark-content" />
+            <Modal animationType="slide" transparent={true} visible={isModalVisible} onRequestClose={() => setModalVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>Filtrar categorias</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <Ionicons name="close-circle" size={30} color="#CCC" />
-                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => setModalVisible(false)}><Ionicons name="close-circle" size={30} color="#CCC" /></TouchableOpacity>
                         </View>
                         <FlatList
                             data={availableCategories}
@@ -151,16 +145,10 @@ const SearchScreen = () => {
                             renderItem={({ item }) => {
                                 const isSelected = tempSelectedCategories.includes(item.id);
                                 return (
-                                    <TouchableOpacity 
-                                        style={styles.categoryItem}
-                                        onPress={() => {
-                                            if (isSelected) {
-                                                setTempSelectedCategories(prev => prev.filter(id => id !== item.id));
-                                            } else {
-                                                setTempSelectedCategories(prev => [...prev, item.id]);
-                                            }
-                                        }}
-                                    >
+                                    <TouchableOpacity style={styles.categoryItem} onPress={() => {
+                                        if (isSelected) { setTempSelectedCategories(prev => prev.filter(id => id !== item.id)); } 
+                                        else { setTempSelectedCategories(prev => [...prev, item.id]); }
+                                    }}>
                                         <Ionicons name={isSelected ? "checkbox" : "square-outline"} size={24} color={isSelected ? "#3F83F8" : "#CCC"} />
                                         <Text style={styles.categoryText}>{item.name}</Text>
                                     </TouchableOpacity>
@@ -168,56 +156,44 @@ const SearchScreen = () => {
                             }}
                         />
                         <View style={styles.modalFooter}>
-                            <TouchableOpacity style={[styles.modalButton, styles.closeButton]} onPress={() => setModalVisible(false)}>
-                                <Text style={styles.modalButtonText}>Fechar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.modalButton, styles.saveButton]} onPress={applyFilters}>
-                                <Text style={[styles.modalButtonText, { color: '#FFF' }]}>Salvar</Text>
-                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.modalButton, styles.closeButton]} onPress={() => setModalVisible(false)}><Text style={styles.modalButtonText}>Fechar</Text></TouchableOpacity>
+                            <TouchableOpacity style={[styles.modalButton, styles.saveButton]} onPress={applyFilters}><Text style={[styles.modalButtonText, { color: '#FFF' }]}>Salvar</Text></TouchableOpacity>
                         </View>
                     </View>
                 </View>
             </Modal>
 
-            {/* Lista Principal de Serviços */}
-            <FlatList
-                data={services}
-                renderItem={renderServiceCard}
-                keyExtractor={(item) => item.id.toString()}
-                ListHeaderComponent={
-                    <View style={styles.searchContainer}>
-                        <View style={styles.inputContainer}>
-                            <Ionicons name="search" size={20} color="#999" />
-                            <TextInput
-                                style={styles.searchInput}
-                                placeholder="Buscar por título do serviço..."
-                                value={searchText}
-                                onChangeText={setSearchText}
-                                onSubmitEditing={() => { setLoading(true); fetchServices(true, 0).finally(() => setLoading(false)); }}
-                                returnKeyType="search"
-                            />
-                        </View>
-                        <TouchableOpacity style={styles.filterButton} onPress={openFilterModal}>
-                            <Text style={styles.filterButtonText}>Filtrar categorias ▼</Text>
-                        </TouchableOpacity>
-                    </View>
-                }
-                contentContainerStyle={styles.listContainer}
-                ListFooterComponent={
-                    loadingMore ? <ActivityIndicator style={{ marginTop: 10 }} size="large" color="#3F83F8" /> : (
-                        hasMore ? (
-                            <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
-                                <Text style={styles.loadMoreText}>Ver mais</Text>
-                            </TouchableOpacity>
-                        ) : null
-                    )
-                }
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>Nenhum serviço encontrado para estes filtros.</Text>
-                    </View>
-                }
-            />
+            <View style={styles.header}>
+                <View style={styles.inputContainer}>
+                    <Ionicons name="search" size={20} color="#999" />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Buscar por serviço ou especialidade..."
+                        value={searchTerm}
+                        onChangeText={(text) => {
+                            setSearchTerm(text);
+                            setIsTyping(text.length > 0);
+                            if (text.length === 0) {
+                                setIsPristine(true);
+                                setServices([]);
+                            } else {
+                                setIsPristine(false);
+                            }
+                        }}
+                        returnKeyType="search"
+                    />
+                </View>
+                <View style={styles.filtersContainer}>
+                    <TouchableOpacity style={styles.filterChip} onPress={openFilterModal}>
+                        <Ionicons name="options-outline" size={16} color="#3F83F8" />
+                        <Text style={styles.filterChipText}>
+                            {selectedCategories.length > 0 ? `${selectedCategories.length} Categoria(s)` : 'Filtrar'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+            
+            {renderContent()}
         </SafeAreaView>
     );
 };

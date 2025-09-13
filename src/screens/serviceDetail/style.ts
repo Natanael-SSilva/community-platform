@@ -2,6 +2,9 @@ import { StyleSheet, Dimensions } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
+/**
+ * @description Estilos para a ServiceDetailScreen e seus subcomponentes.
+ */
 export const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
@@ -12,15 +15,11 @@ export const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    // O container do conteúdo que será rolável
-    scrollContentContainer: {
-        paddingBottom: 20, // Garante um espaço no final do scroll
+    scrollContainer: {
+        flexGrow: 1,
+        backgroundColor: '#FFFFFF',
     },
-    // Estilos para o Carrossel de Imagens
-    imageCarousel: {
-        width: width,
-        height: 250,
-    },
+    // Carrossel de Imagens
     image: {
         width: width,
         height: 250,
@@ -32,90 +31,107 @@ export const styles = StyleSheet.create({
         right: 10,
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
         color: '#FFFFFF',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
         borderRadius: 15,
         fontSize: 12,
-        overflow: 'hidden',
+        overflow: 'hidden', // Garante o arredondamento no iOS
     },
-    // Conteúdo principal da tela
+    // Container principal para o conteúdo textual
     contentContainer: {
         padding: 20,
-    },
-    title: {
-        fontSize: 26,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 8,
     },
     categoryTag: {
         backgroundColor: '#E6F0FF',
         color: '#3F83F8',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         borderRadius: 15,
         alignSelf: 'flex-start',
         overflow: 'hidden',
-        marginBottom: 15,
+        marginBottom: 12,
         fontWeight: '500',
+        fontSize: 14,
     },
-    sectionTitle: {
-        fontSize: 20,
+    title: {
+        fontSize: 28,
         fontWeight: 'bold',
-        color: '#333',
-        marginTop: 20,
-        marginBottom: 10,
-    },
-    description: {
-        fontSize: 16,
-        color: '#666',
-        lineHeight: 24,
+        color: '#1A202C',
+        marginBottom: 16,
     },
     // Bloco do Prestador de Serviço
     providerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 15,
-        backgroundColor: '#F9F9F9',
-        borderRadius: 8,
-        marginTop: 20,
+        padding: 16,
+        backgroundColor: '#F7FAFC',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
     },
     providerAvatar: {
         width: 50,
         height: 50,
         borderRadius: 25,
         marginRight: 15,
-        backgroundColor: '#EFEFEF',
+        backgroundColor: '#E2E8F0',
     },
     providerName: {
         fontSize: 18,
         fontWeight: 'bold',
+        color: '#2D3748',
+    },
+    // Títulos de Seção (ex: "Detalhes", "Avaliações")
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#1A202C',
+        marginTop: 24,
+        marginBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E2E8F0',
+        paddingBottom: 8,
+    },
+    description: {
+        fontSize: 16,
+        color: '#4A5568',
+        lineHeight: 26,
     },
     // Seção de Avaliações
-    reviewsContainer: {
-        marginTop: 20,
+    addReviewButton: {
+        backgroundColor: '#48BB78',
+        paddingVertical: 15,
+        borderRadius: 12,
+        alignItems: 'center',
+        marginTop: 10,
     },
+    addReviewButtonText: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    // Estilos para o subcomponente ReviewItem
     reviewItem: {
-        backgroundColor: '#F9F9F9',
-        padding: 15,
-        borderRadius: 8,
-        marginBottom: 10,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E2E8F0',
     },
     reviewHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 5,
+        marginBottom: 8,
     },
     reviewAvatar: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        marginRight: 10,
-        backgroundColor: '#EFEFEF',
+        marginRight: 12,
+        backgroundColor: '#E2E8F0',
     },
     reviewAuthor: {
         fontSize: 16,
         fontWeight: 'bold',
+        color: '#2D3748',
     },
     reviewStars: {
         flexDirection: 'row',
@@ -123,17 +139,10 @@ export const styles = StyleSheet.create({
     },
     reviewComment: {
         fontSize: 15,
-        color: '#333',
+        color: '#4A5568',
         lineHeight: 22,
     },
-    addReviewButton: {
-        backgroundColor: '#48BB78',
-        paddingVertical: 15,
-        borderRadius: 8,
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    // Rodapé fixo
+    // Rodapé Fixo
     footer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -141,24 +150,24 @@ export const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 15,
         borderTopWidth: 1,
-        borderTopColor: '#EEE',
+        borderTopColor: '#E2E8F0',
         backgroundColor: '#FFFFFF',
-        paddingBottom: 25, // Espaço extra para a barra de navegação do sistema
+        paddingBottom: 25,
     },
     priceLabel: {
         fontSize: 14,
-        color: '#666',
+        color: '#718096',
     },
     priceValue: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: '#333',
+        color: '#1A202C',
     },
     actionButton: {
         backgroundColor: '#3F83F8',
-        paddingVertical: 15,
+        paddingVertical: 16,
         paddingHorizontal: 30,
-        borderRadius: 8,
+        borderRadius: 12,
     },
     actionButtonText: {
         color: '#FFFFFF',
