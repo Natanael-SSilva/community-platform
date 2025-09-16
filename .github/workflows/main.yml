@@ -8,29 +8,19 @@ on:
 jobs:
 
   build-and-lint:
-    # Define o tipo de máquina virtual que será usada.
     runs-on: ubuntu-latest
 
     steps:
-      # Passo 1: Baixa o código do seu repositório para a máquina virtual.
-      # 'uses' indica que estamos usando uma "Action" pré-pronta. 'actions/checkout' é oficial.
       - name: 1. Verificando o código do repositório
         uses: actions/checkout@v4
 
-      # Passo 2: Configura o ambiente Node.js na versão 18.
-      # É importante usar a mesma versão que você usa para desenvolver.
       - name: 2. Configurando o ambiente Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      # Passo 3: Instala as dependências do projeto.
-      # 'run' executa um comando no terminal da máquina virtual.
-      # Se você usa yarn, troque 'npm install' por 'yarn install'.
       - name: 3. Instalando as dependências
         run: npm install
 
-      # Passo 4: Roda o Linter para verificar a qualidade do código.
-      # Este comando depende de um script 'lint' no seu package.json.
       - name: 4. Executando o Linter (Verificação de Código)
         run: npm run lint

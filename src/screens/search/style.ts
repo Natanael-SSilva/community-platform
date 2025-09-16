@@ -3,21 +3,20 @@ import { StyleSheet } from 'react-native';
 /**
  * @description
  * Estilos para a SearchScreen.
- * O design foi refinado para uma aparência profissional, com clara separação
- * entre o cabeçalho de busca e a lista de resultados.
+ * O design foi refinado para uma aparência mais limpa e profissional,
+ * com melhor espaçamento e hierarquia visual.
  */
 export const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
         backgroundColor: '#FFFFFF',
     },
-    // Container do cabeçalho que fica fixo no topo
+    // Container do cabeçalho de busca que fica fixo no topo
     header: {
         padding: 15,
         backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
         borderBottomColor: '#E2E8F0',
-        marginTop: 20,
     },
     inputContainer: {
         flexDirection: 'row',
@@ -29,14 +28,14 @@ export const styles = StyleSheet.create({
     searchInput: {
         flex: 1,
         height: 48,
-        fontSize: 14,
+        fontSize: 16,
         marginLeft: 10,
         color: '#2D3748',
     },
     filtersContainer: {
         flexDirection: 'row',
         marginTop: 12,
-        gap: 10,
+        gap: 10, // Espaçamento entre os botões de filtro
     },
     filterChip: {
         flexDirection: 'row',
@@ -55,22 +54,6 @@ export const styles = StyleSheet.create({
     // Estilo para o container da lista
     listContentContainer: {
         padding: 20,
-    },
-    // Estilos para a lista de SUGESTÕES flutuante
-    suggestionsContainer: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-    },
-    suggestionItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-    },
-    suggestionText: {
-        fontSize: 16,
-        marginLeft: 10,
     },
     // Estilos para o estado de lista vazia
     emptyContainer: {

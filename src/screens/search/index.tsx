@@ -3,45 +3,46 @@ import { View, Text, SafeAreaView, FlatList, Alert, ActivityIndicator, TextInput
 import { supabase } from '../../services/supabase';
 import { styles } from './style';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import ServiceCard, { ServiceCardData } from '../../components/ServiceCard';
 import useDebounce from '../../hooks/useDebounce';
-import PristineSearch from '../../components/PristineSearch';
 
 type Category = { id: number; name: string; };
 
 /**
  * @description
- * Tela de busca de serviços. Gerencia múltiplos estados (inicial, digitação, resultados)
- * e envia os filtros de busca e categoria para o backend para uma busca performática.
+ * Tela de busca de serviços. Carrega os serviços mais recentes por padrão e permite
+ * uma busca dinâmica e filtrada pelo usuário, com uma interface limpa e reativa.
  */
 const SearchScreen: React.FC = () => {
+    // Estados para dados e controle da UI
     const [services, setServices] = useState<ServiceCardData[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     
+    // Estados para os filtros
     const [searchTerm, setSearchTerm] = useState('');
-    const [suggestions, setSuggestions] = useState<Pick<ServiceCardData, 'id' | 'title'>[]>([]);
-    const [isTyping, setIsTyping] = useState(false);
-    const debouncedSearchTerm = useDebounce(searchTerm, 400);
-
-    const [isPristine, setIsPristine] = useState(true);
+    const debouncedSearchTerm = useDebounce(searchTerm, 500); // Debounce para a busca em tempo real
+    const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+    
+    // Estados para o modal de filtro
     const [isModalVisible, setModalVisible] = useState(false);
     const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
-    const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [tempSelectedCategories, setTempSelectedCategories] = useState<number[]>([]);
 
     /**
-     * Busca os serviços no backend, aplicando os filtros atuais de texto e categoria.
+     * @description
+     * Função central para buscar os serviços no backend.
+     * Ela é "memoizada" com useCallback e é recriada sempre que os filtros mudam,
+     * garantindo que a busca seja sempre executada com os parâmetros mais recentes.
      */
-    const executeSearch = useCallback(async (searchTextValue: string, categoryIds: number[]) => {
-        setIsPristine(false);
-        setIsTyping(false);
-        Keyboard.dismiss();
+    const fetchServices = useCallback(async () => {
         setLoading(true);
         try {
             const { data, error } = await supabase.rpc('get_services_with_ratings', {
-                search_term: searchTextValue.trim() === '' ? null : searchTextValue,
-                category_ids_filter: categoryIds.length === 0 ? null : categoryIds
+                search_term: debouncedSearchTerm.trim() === '' ? null : debouncedSearchTerm,
+                category_ids_filter: selectedCategories.length === 0 ? null : selectedCategories
             });
+
             if (error) throw error;
             setServices(data || []);
         } catch (error: any) {
@@ -49,32 +50,12 @@ const SearchScreen: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
-    
-    useEffect(() => {
-        if (debouncedSearchTerm.trim().length > 1 && isTyping) {
-            const fetchSuggestions = async () => {
-                const { data, error } = await supabase.from('services').select('id, title').ilike('title', `%${debouncedSearchTerm}%`).limit(5);
-                if (error) console.error("Erro ao buscar sugestões:", error);
-                else setSuggestions(data || []);
-            };
-            fetchSuggestions();
-        } else {
-            setSuggestions([]);
-        }
-    }, [debouncedSearchTerm, isTyping]);
-    
-    const handleSuggestionPress = (suggestionTitle: string) => {
-        setSearchTerm(suggestionTitle);
-        executeSearch(suggestionTitle, selectedCategories);
-    };
+    }, [debouncedSearchTerm, selectedCategories]); // A função depende destes filtros
 
-    const handleCategoryPress = (categoryId: number, categoryName: string) => {
-        const newSelectedCategories = [categoryId];
-        setSelectedCategories(newSelectedCategories);
-        setSearchTerm(categoryName);
-        executeSearch(categoryName, newSelectedCategories);
-    };
+    // Dispara a busca sempre que os filtros "debounceados" ou de categoria mudam.
+    useEffect(() => {
+        fetchServices();
+    }, [fetchServices]);
 
     const openFilterModal = async () => {
         if (availableCategories.length === 0) {
@@ -88,50 +69,12 @@ const SearchScreen: React.FC = () => {
     const applyFilters = () => {
         setSelectedCategories(tempSelectedCategories);
         setModalVisible(false);
-        executeSearch(searchTerm, tempSelectedCategories);
-    };
-
-    /**
-     * Decide qual conteúdo renderizar com base no estado da busca.
-     */
-    const renderContent = () => {
-        if (loading) {
-            return <ActivityIndicator style={{ flex: 1 }} size="large" color="#3F83F8" />;
-        }
-        if (isTyping) {
-            return (
-                <View style={styles.suggestionsContainer}>
-                    <FlatList
-                        data={suggestions}
-                        keyExtractor={(item) => item.id.toString()}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity style={styles.suggestionItem} onPress={() => handleSuggestionPress(item.title)}>
-                                <Ionicons name="search-outline" size={20} color="#666" />
-                                <Text style={styles.suggestionText}>{item.title}</Text>
-                            </TouchableOpacity>
-                        )}
-                        keyboardShouldPersistTaps="handled"
-                    />
-                </View>
-            );
-        }
-        if (isPristine) {
-            return <PristineSearch onCategoryPress={handleCategoryPress} />;
-        }
-        return (
-            <FlatList
-                data={services}
-                renderItem={({ item }) => <ServiceCard service={item} />}
-                keyExtractor={(item) => item.id.toString()}
-                contentContainerStyle={styles.listContentContainer}
-                ListEmptyComponent={<View style={styles.emptyContainer}><Ionicons name="search-circle-outline" size={60} color="#CBD5E0" style={styles.emptyIcon} /><Text style={styles.emptyTitle}>Nenhum serviço encontrado</Text><Text style={styles.emptySubtitle}>Tente ajustar sua busca ou filtros.</Text></View>}
-            />
-        );
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaProvider style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
+            
             <Modal animationType="slide" transparent={true} visible={isModalVisible} onRequestClose={() => setModalVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
@@ -162,7 +105,7 @@ const SearchScreen: React.FC = () => {
                     </View>
                 </View>
             </Modal>
-
+            
             <View style={styles.header}>
                 <View style={styles.inputContainer}>
                     <Ionicons name="search" size={20} color="#999" />
@@ -170,16 +113,7 @@ const SearchScreen: React.FC = () => {
                         style={styles.searchInput}
                         placeholder="Buscar por serviço ou especialidade..."
                         value={searchTerm}
-                        onChangeText={(text) => {
-                            setSearchTerm(text);
-                            setIsTyping(text.length > 0);
-                            if (text.length === 0) {
-                                setIsPristine(true);
-                                setServices([]);
-                            } else {
-                                setIsPristine(false);
-                            }
-                        }}
+                        onChangeText={setSearchTerm}
                         returnKeyType="search"
                     />
                 </View>
@@ -192,9 +126,25 @@ const SearchScreen: React.FC = () => {
                     </TouchableOpacity>
                 </View>
             </View>
-            
-            {renderContent()}
-        </SafeAreaView>
+
+            {loading ? (
+                <ActivityIndicator style={{ flex: 1 }} size="large" color="#3F83F8" />
+            ) : (
+                <FlatList
+                    data={services}
+                    renderItem={({ item }) => <ServiceCard service={item} />}
+                    keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={styles.listContentContainer}
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="search-circle-outline" size={60} color="#CBD5E0" style={styles.emptyIcon} />
+                            <Text style={styles.emptyTitle}>Nenhum serviço encontrado</Text>
+                            <Text style={styles.emptySubtitle}>Tente ajustar sua busca ou filtros para encontrar o que procura.</Text>
+                        </View>
+                    }
+                />
+            )}
+        </SafeAreaProvider>
     );
 };
 

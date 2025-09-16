@@ -31,6 +31,9 @@ type ServiceDetailRouteProp = RouteProp<AppStackParamList, 'ServiceDetail'>;
 /**
  * @description
  * Subcomponente para renderizar um único item de avaliação.
+ * Segue o princípio de "Single Responsibility", mantendo o código principal mais limpo.
+ * @param {ReviewData} review - Os dados da avaliação a serem exibidos.
+ * @returns {React.FC} Um componente de item de avaliação.
  */
 const ReviewItem: React.FC<{ review: ReviewData }> = ({ review }) => (
     <View style={styles.reviewItem}>
@@ -47,7 +50,8 @@ const ReviewItem: React.FC<{ review: ReviewData }> = ({ review }) => (
 
 /**
  * @description
- * Tela que exibe os detalhes completos de um serviço.
+ * Tela que exibe os detalhes completos de um serviço, incluindo informações do prestador e avaliações.
+ * Permite ao usuário iniciar uma conversa ou deixar uma nova avaliação.
  */
 const ServiceDetailScreen: React.FC = () => {
     const route = useRoute<ServiceDetailRouteProp>();
@@ -62,7 +66,7 @@ const ServiceDetailScreen: React.FC = () => {
     /**
      * @description
      * Busca os detalhes completos do serviço no backend.
-     * Envolvida em useCallback para ser otimizada e reutilizada em outros hooks/funções.
+     * Envolvida em useCallback para ser otimizada e reutilizada.
      */
     const fetchServiceDetails = useCallback(async () => {
         if (!serviceId) return;
@@ -78,7 +82,8 @@ const ServiceDetailScreen: React.FC = () => {
         }
     }, [serviceId]);
 
-    // O useFocusEffect agora apenas chama a função de busca, que está no escopo correto.
+    // CORREÇÃO: A chamada da função async é feita dentro do useCallback,
+    // garantindo que a função passada para useFocusEffect não retorna uma Promise.
     useFocusEffect(
       useCallback(() => {
         fetchServiceDetails();
@@ -89,10 +94,13 @@ const ServiceDetailScreen: React.FC = () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("Você precisa estar logado para avaliar.");
+            if (user.id === service?.profiles?.id) {
+                Alert.alert("Ação inválida", "Você não pode avaliar o seu próprio serviço.");
+                return;
+            }
             const { error } = await supabase.from('reviews').insert({ service_id: serviceId, user_id: user.id, rating, comment });
             if (error) throw error;
             Alert.alert("Sucesso", "Sua avaliação foi enviada!");
-            // Agora a função pode ser chamada daqui para recarregar os dados.
             fetchServiceDetails();
         } catch (error: any) {
             Alert.alert("Erro ao avaliar", error.message);
