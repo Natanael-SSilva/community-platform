@@ -1,13 +1,20 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { Text, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AppStackParamList } from '../../navigation/AppNavigator'; // Importamos o mapa de telas
+import type { AppStackParamList } from '../../navigation/types';
 import { styles } from './style';
 
-// Tipagem para a navegação
+/**
+ * Tipagem para a propriedade de navegação específica desta tela.
+ * Ajuda o TypeScript a autocompletar e validar as rotas e parâmetros.
+ */
 type HomeScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'MainTabs'>;
 
+/**
+ * Tela inicial do aplicativo (Home).
+ * Apresenta uma mensagem de boas-vindas e um botão de ação principal.
+ */
 const HomeScreen = () => {
     const navigation = useNavigation<HomeScreenNavigationProp>();
 
@@ -25,9 +32,5 @@ const HomeScreen = () => {
         </SafeAreaView>
     );
 };
-
-// Se o seu estilo já está em um arquivo separado, não precisa desta parte aqui.
-// Apenas garanta que o arquivo styles.ts esteja atualizado.
-// const styles = StyleSheet.create({ ... });
 
 export default HomeScreen;

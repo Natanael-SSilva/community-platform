@@ -35,7 +35,7 @@ export const styles = StyleSheet.create({
         paddingVertical: 5,
         borderRadius: 15,
         fontSize: 12,
-        overflow: 'hidden', // Garante o arredondamento no iOS
+        overflow: 'hidden',
     },
     // Container principal para o conteúdo textual
     contentContainer: {
@@ -88,27 +88,34 @@ export const styles = StyleSheet.create({
         color: '#1A202C',
         marginTop: 24,
         marginBottom: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0',
-        paddingBottom: 8,
     },
     description: {
         fontSize: 16,
         color: '#4A5568',
         lineHeight: 26,
     },
-    // Seção de Avaliações
-    addReviewButton: {
-        backgroundColor: '#48BB78',
-        paddingVertical: 15,
-        borderRadius: 12,
+    // Container para o cabeçalho da seção de reviews
+    reviewsHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E2E8F0',
+        paddingBottom: 8,
+    },
+    addReviewButton: {
+        backgroundColor: 'transparent',
     },
     addReviewButtonText: {
-        color: '#FFF',
+        color: '#3F83F8',
         fontWeight: 'bold',
         fontSize: 16,
+    },
+    // ADICIONADO: Estilo para o texto de "nenhuma avaliação"
+    noReviewsText: {
+        textAlign: 'center',
+        marginTop: 20,
+        color: '#666'
     },
     // Estilos para o subcomponente ReviewItem
     reviewItem: {

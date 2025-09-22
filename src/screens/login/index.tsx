@@ -1,70 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
     View, Text, TextInput, TouchableOpacity, SafeAreaView, Modal, 
-    ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Alert, StatusBar 
+    ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, StatusBar 
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { styles } from './style';
-import { AuthStackParamList } from '../../navigation/AuthNavigator';
+// CORREÇÃO: Importando o tipo do arquivo central 'types'
+import type { AuthStackParamList } from '../../navigation/types';
 
+/**
+ * Tipagem para a propriedade de navegação da tela de Login.
+ */
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 /**
- * @description
  * Tela de Login. Permite que usuários existentes acessem suas contas.
- * A tela se ajusta automaticamente quando o teclado aparece.
  */
 const LoginScreen: React.FC = () => {
     const navigation = useNavigation<LoginScreenNavigationProp>();
 
+    // --- Estados ---
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [showSuccess, setShowSuccess] = useState(false);
+
+    // --- Funções ---
 
     /**
      * Tenta autenticar o usuário com o e-mail e senha fornecidos.
      */
     const handleLogin = async () => {
-        setError('');
-        if (!email || !password) {
+        if (!email.trim() || !password) {
             setError("Por favor, preencha e-mail e senha.");
             return;
         }
 
         setLoading(true);
-        const { error } = await supabase.auth.signInWithPassword({
-            email: email,
+        setError('');
+
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
             password: password,
         });
 
-        if (error) {
-            setError(error.message === 'Email not confirmed' ? 'Por favor, confirme seu e-mail.' : 'E-mail ou senha inválidos.');
-        } else {
-            setShowSuccess(true);
+        if (signInError) {
+            // Traduz a mensagem de erro do Supabase para algo mais amigável.
+            if (signInError.message === 'Email not confirmed') {
+                setError('Por favor, confirme seu e-mail antes de fazer login.');
+            } else {
+                setError('E-mail ou senha inválidos.');
+            }
         }
+        // Em caso de sucesso, o listener global de autenticação no App.tsx
+        // irá detectar a mudança de sessão e redirecionar o usuário.
         setLoading(false);
     };
 
     /**
-     * Navega para a tela de Cadastro.
+     * Limpa o erro ao digitar no campo de e-mail.
      */
-    const navigateToRegister = () => {
-        navigation.navigate('Register');
-    };
+    const handleEmailChange = useCallback((text: string) => {
+        setEmail(text);
+        if (error) setError('');
+    }, [error]);
 
     /**
-     * Navega para a tela de recuperação de senha.
+     * Limpa o erro ao digitar no campo de senha.
      */
-    const navigateToForgotPassword = () => {
-        navigation.navigate('ForgotPassword');
-    };
+    const handlePasswordChange = useCallback((text: string) => {
+        setPassword(text);
+        if (error) setError('');
+    }, [error]);
 
+    // --- Renderização ---
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
@@ -72,13 +85,8 @@ const LoginScreen: React.FC = () => {
                 style={{ flex: 1 }}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
             >
-                <Modal transparent={true} visible={showSuccess} animationType="fade">
-                    <View style={styles.modalContainer}>
-                        <View style={styles.modalView}>
-                            <Ionicons name="checkmark-circle" size={80} color="#48BB78" />
-                        </View>
-                    </View>
-                </Modal>
+                {/* O modal de sucesso foi removido pois o redirecionamento
+                    deve ser feito pelo listener de autenticação global */}
                 
                 <ScrollView 
                     contentContainerStyle={styles.scrollContainer} 
@@ -91,19 +99,32 @@ const LoginScreen: React.FC = () => {
 
                     <View style={styles.formContainer}>
                         <View style={styles.inputContainer}>
-                            <TextInput style={styles.input} placeholder="E-mail" value={email} onChangeText={text => { setEmail(text); setError(''); }} keyboardType="email-address" autoCapitalize="none" />
+                            <TextInput 
+                                style={styles.input} 
+                                placeholder="E-mail" 
+                                value={email} 
+                                onChangeText={handleEmailChange} 
+                                keyboardType="email-address" 
+                                autoCapitalize="none" 
+                            />
                         </View>
                         
                         <View style={styles.inputContainer}>
-                            <TextInput style={styles.input} placeholder="Senha" value={password} onChangeText={text => { setPassword(text); setError(''); }} secureTextEntry={!isPasswordVisible} />
-                            <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+                            <TextInput 
+                                style={styles.input} 
+                                placeholder="Senha" 
+                                value={password} 
+                                onChangeText={handlePasswordChange} 
+                                secureTextEntry={!isPasswordVisible} 
+                            />
+                            <TouchableOpacity onPress={() => setIsPasswordVisible(prev => !prev)}>
                                 <Ionicons name={isPasswordVisible ? "eye-off" : "eye"} size={24} color="#A0AEC0" style={styles.icon} />
                             </TouchableOpacity>
                         </View>
 
                         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-                        <TouchableOpacity style={styles.forgotPasswordButton} onPress={navigateToForgotPassword}>
+                        <TouchableOpacity style={styles.forgotPasswordButton} onPress={() => navigation.navigate('ForgotPassword')}>
                             <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
                         </TouchableOpacity>
                     </View>
@@ -113,7 +134,7 @@ const LoginScreen: React.FC = () => {
                             {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.loginButtonText}>Entrar</Text>}
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.signupButton} onPress={navigateToRegister}>
+                        <TouchableOpacity style={styles.signupButton} onPress={() => navigation.navigate('Register')}>
                             <Text style={styles.signupText}>
                                 Não tem uma conta? <Text style={styles.signupLink}>Cadastre-se</Text>
                             </Text>

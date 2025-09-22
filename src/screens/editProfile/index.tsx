@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, SafeAreaView, ActivityIndicator, Image, ScrollView } from 'react-native';
+import { 
+    View, Text, TextInput, TouchableOpacity, Alert, SafeAreaView, 
+    ActivityIndicator, Image, ScrollView 
+} from 'react-native';
 import { supabase } from '../../services/supabase';
 import { styles } from './style';
 import * as ImagePicker from 'expo-image-picker';
@@ -7,19 +10,30 @@ import { Ionicons } from '@expo/vector-icons';
 import { decode } from 'base64-arraybuffer';
 import LocationSelectorModal from '../../components/LocationSelectorModal';
 
-const EditProfileScreen = () => {
-    const [loading, setLoading] = useState(true);
-    const [username, setUsername] = useState('');
-    const [fullName, setFullName] = useState('');
-    const [phone, setPhone] = useState('');
-    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-    const [location, setLocation] = useState('');
-    const [isLocationModalVisible, setLocationModalVisible] = useState(false);
+// --- Tipos ---
+type Profile = {
+    username: string;
+    full_name: string;
+    phone: string;
+    avatar_url: string | null;
+    location: string;
+};
 
+// --- Custom Hook ---
+/**
+ * Hook para gerenciar os dados do perfil do usuário.
+ * Encapsula a lógica de buscar, atualizar o perfil e o avatar.
+ */
+const useProfile = () => {
+    const [profile, setProfile] = useState<Partial<Profile>>({});
+    const [loading, setLoading] = useState(true);
+    const [isDirty, setIsDirty] = useState(false); // Rastreia se houve mudanças
+
+    // Busca o perfil inicial do usuário
     useEffect(() => {
         const fetchProfile = async () => {
+            setLoading(true);
             try {
-                setLoading(true);
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) throw new Error("Usuário não encontrado");
 
@@ -28,16 +42,12 @@ const EditProfileScreen = () => {
                     .select(`username, full_name, phone, avatar_url, location`)
                     .eq('id', user.id)
                     .single();
+
                 if (error && error.code !== 'PGRST116') throw error;
-                if (data) {
-                    setUsername(data.username || '');
-                    setFullName(data.full_name || '');
-                    setPhone(data.phone || '');
-                    setAvatarUrl(data.avatar_url);
-                    setLocation(data.location || '');
-                }
-            } catch (error: any) {
-                Alert.alert("Erro ao carregar dados", error.message);
+                if (data) setProfile(data);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+                Alert.alert("Erro ao carregar dados", message);
             } finally {
                 setLoading(false);
             }
@@ -45,8 +55,88 @@ const EditProfileScreen = () => {
         fetchProfile();
     }, []);
 
-    const pickImage = async (fromCamera: boolean) => {
-        let result;
+    /** Atualiza um campo específico do perfil */
+    const updateProfileField = (field: keyof Profile, value: string | null) => {
+        setProfile(prev => ({ ...prev, [field]: value }));
+        setIsDirty(true);
+    };
+
+    /** Salva todas as mudanças do perfil no banco de dados */
+    const saveProfileChanges = async () => {
+        if (!isDirty) {
+            Alert.alert("Nenhuma alteração", "Não há nenhuma alteração para salvar.");
+            return;
+        }
+        setLoading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Usuário não encontrado");
+
+            const updates = { ...profile, updated_at: new Date() };
+            const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+            if (error) throw error;
+            
+            Alert.alert("Sucesso!", "Seu perfil foi atualizado.");
+            setIsDirty(false); // Reseta o estado de mudanças
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+            Alert.alert("Erro ao atualizar", message);
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    /** Faz o upload de um novo avatar */
+    const uploadAvatar = async (base64Image: string) => {
+        setLoading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Usuário não encontrado");
+
+            const filePath = `${user.id}/${new Date().getTime()}.png`;
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, decode(base64Image), { contentType: 'image/png', upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+            const newAvatarUrl = `${publicUrlData.publicUrl}?t=${new Date().getTime()}`;
+            
+            await supabase.from('profiles').update({ avatar_url: newAvatarUrl, updated_at: new Date() }).eq('id', user.id);
+            updateProfileField('avatar_url', newAvatarUrl);
+
+            Alert.alert("Sucesso!", "Foto de perfil atualizada.");
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+            Alert.alert("Erro no upload", message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return { profile, loading, updateProfileField, saveProfileChanges, uploadAvatar };
+};
+
+
+// --- Componente Principal ---
+const EditProfileScreen = () => {
+    const { profile, loading, updateProfileField, saveProfileChanges, uploadAvatar } = useProfile();
+    const [isLocationModalVisible, setLocationModalVisible] = useState(false);
+
+    const handlePickImage = async () => {
+        Alert.alert(
+            "Alterar Foto",
+            "Escolha uma opção",
+            [
+                { text: "Tirar Foto", onPress: () => selectImage('camera') },
+                { text: "Escolher da Galeria", onPress: () => selectImage('gallery') },
+                { text: "Cancelar", style: "cancel" }
+            ]
+        );
+    };
+
+    const selectImage = async (source: 'camera' | 'gallery') => {
         const options: ImagePicker.ImagePickerOptions = {
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
@@ -54,8 +144,9 @@ const EditProfileScreen = () => {
             quality: 0.7,
             base64: true,
         };
-    
-        if (fromCamera) {
+        
+        let result;
+        if (source === 'camera') {
             await ImagePicker.requestCameraPermissionsAsync();
             result = await ImagePicker.launchCameraAsync(options);
         } else {
@@ -68,69 +159,9 @@ const EditProfileScreen = () => {
         }
     };
 
-    const uploadAvatar = async (base64Image: string) => {
-        try {
-            setLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Usuário não encontrado");
-
-            const fileExt = 'png';
-            const filePath = `${user.id}/${new Date().getTime()}.${fileExt}`;
-            const imageArrayBuffer = decode(base64Image);
-
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, imageArrayBuffer, {
-                    contentType: `image/${fileExt}`,
-                    upsert: false,
-                    cacheControl: '3600',
-                });
-
-            if (uploadError) throw uploadError;
-
-            const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-
-            if (publicUrlData) {
-                const newAvatarUrl = `${publicUrlData.publicUrl}?t=${new Date().getTime()}`;
-                setAvatarUrl(newAvatarUrl);
-                const { error: updateError } = await supabase.from('profiles').update({ avatar_url: newAvatarUrl, updated_at: new Date() }).eq('id', user.id);
-                if (updateError) throw updateError;
-                Alert.alert("Sucesso!", "Foto de perfil atualizada.");
-            }
-        } catch (error: any) {
-            Alert.alert("Erro no upload", error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleUpdateProfile = async () => {
-        try {
-            setLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Usuário não encontrado");
-
-            const updates = {
-                id: user.id,
-                username,
-                full_name: fullName,
-                phone,
-                location,
-                updated_at: new Date(),
-            };
-            
-            const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
-            if (error) throw error;
-            
-            Alert.alert("Sucesso!", "Seu perfil foi atualizado.");
-        } catch (error: any) {
-            Alert.alert("Erro ao atualizar", error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loading && !avatarUrl) return <ActivityIndicator style={{ flex: 1 }} />;
+    if (loading && !profile.avatar_url) {
+        return <ActivityIndicator style={{ flex: 1, justifyContent: 'center' }} size="large" />;
+    }
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#F9F9F9' }}>
@@ -138,43 +169,36 @@ const EditProfileScreen = () => {
                 visible={isLocationModalVisible}
                 onClose={() => setLocationModalVisible(false)}
                 onLocationSelect={(selectedLocation) => {
-                    setLocation(selectedLocation);
+                    updateProfileField('location', selectedLocation);
+                    setLocationModalVisible(false); // Fecha o modal após a seleção
                 }}
             />
             <ScrollView style={styles.container}>
                 <View style={styles.avatarContainer}>
-                    {avatarUrl ? (
-                        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-                    ) : (
-                        <View style={styles.avatarPlaceholder}>
-                            <Ionicons name="person" size={50} color="#666" />
-                        </View>
-                    )}
-                    <TouchableOpacity onPress={() => Alert.alert("Adicionar Foto", "Escolha uma opção", [{ text: "Tirar Foto", onPress: () => pickImage(true) }, { text: "Escolher da Galeria", onPress: () => pickImage(false) }, { text: "Cancelar", style: "cancel" }])} style={styles.editAvatarButton}>
+                    <Image source={{ uri: profile.avatar_url || undefined }} style={styles.avatar} />
+                    <TouchableOpacity onPress={handlePickImage} style={styles.editAvatarButton}>
                         <Ionicons name="camera" size={20} color="#FFF" />
                     </TouchableOpacity>
                 </View>
 
                 <Text style={styles.label}>Nome de Usuário</Text>
-                <TextInput style={styles.input} value={username} onChangeText={setUsername} />
+                <TextInput style={styles.input} value={profile.username} onChangeText={(text) => updateProfileField('username', text)} />
 
                 <Text style={styles.label}>Nome e Sobrenome</Text>
-                <TextInput style={styles.input} value={fullName} onChangeText={setFullName} />
+                <TextInput style={styles.input} value={profile.full_name} onChangeText={(text) => updateProfileField('full_name', text)} />
 
                 <Text style={styles.label}>Telefone</Text>
-                <TextInput style={styles.input} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+                <TextInput style={styles.input} value={profile.phone} onChangeText={(text) => updateProfileField('phone', text)} keyboardType="phone-pad" />
 
                 <Text style={styles.label}>Minha Localização</Text>
                 <TouchableOpacity style={styles.locationButton} onPress={() => setLocationModalVisible(true)}>
-                    {location ? (
-                        <Text style={styles.locationText}>{location}</Text>
-                    ) : (
-                        <Text style={styles.locationPlaceholder}>Clique para selecionar sua cidade</Text>
-                    )}
+                    <Text style={profile.location ? styles.locationText : styles.locationPlaceholder}>
+                        {profile.location || 'Clique para selecionar sua cidade'}
+                    </Text>
                     <Ionicons name="chevron-down" size={20} color="#666" />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.button} onPress={handleUpdateProfile} disabled={loading}>
+                <TouchableOpacity style={styles.button} onPress={saveProfileChanges} disabled={loading}>
                     {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Salvar Alterações</Text>}
                 </TouchableOpacity>
             </ScrollView>

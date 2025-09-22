@@ -1,31 +1,80 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Alert, SafeAreaView, ActivityIndicator, Image, ScrollView, StatusBar } from 'react-native';
+import { 
+    View, Text, TouchableOpacity, Alert, SafeAreaView, 
+    ActivityIndicator, Image, ScrollView, StatusBar 
+} from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../../services/supabase';
-import { AppStackParamList } from '../../navigation/types'; // Importação corrigida
+import type { AppStackParamList } from '../../navigation/types';
 import { styles } from './style';
 import { Ionicons } from '@expo/vector-icons';
 
-// Tipagem para os dados do perfil
+// --- Tipos ---
 type ProfileData = {
     fullName: string | null;
     avatarUrl: string | null;
 };
-
-// Tipagem para as props do subcomponente MenuItem
 type MenuItemProps = {
     icon: keyof typeof Ionicons.glyphMap;
     text: string;
     onPress: () => void;
     isLast?: boolean;
 };
-
-// O tipo de navegação agora usa a definição centralizada
 type ProfileScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'MainTabs'>;
 
+// --- Custom Hook ---
 /**
- * @description Subcomponente reutilizável para renderizar um item do menu do perfil.
+ * Hook para buscar e gerenciar os dados do perfil do usuário.
+ * Atualiza os dados sempre que a tela entra em foco.
+ */
+const useUserProfile = () => {
+    const [profile, setProfile] = useState<ProfileData>({ fullName: null, avatarUrl: null });
+    const [loading, setLoading] = useState(true);
+
+    // useFocusEffect com useCallback garante que a função de busca seja recriada
+    // apenas se necessário e executada toda vez que a tela focar.
+    useFocusEffect(
+        useCallback(() => {
+            const fetchProfile = async () => {
+                try {
+                    setLoading(true);
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) throw new Error("Usuário não autenticado");
+
+                    const { data, error } = await supabase
+                        .from('profiles')
+                        .select(`full_name, avatar_url`)
+                        .eq('id', user.id)
+                        .single();
+                        
+                    if (error && error.code !== 'PGRST116') throw error;
+                    
+                    if (data) {
+                        setProfile({
+                            fullName: data.full_name,
+                            // Adiciona um timestamp para evitar problemas de cache com a imagem
+                            avatarUrl: data.avatar_url ? `${data.avatar_url}?t=${new Date().getTime()}` : null
+                        });
+                    }
+                } catch (error) {
+                    const message = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+                    Alert.alert('Erro ao carregar perfil', message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchProfile();
+        }, [])
+    );
+
+    return { profile, loading };
+};
+
+
+// --- Subcomponentes ---
+/**
+ * Subcomponente reutilizável para renderizar um item do menu do perfil.
  */
 const MenuItem: React.FC<MenuItemProps> = ({ icon, text, onPress, isLast = false }) => (
     <TouchableOpacity style={[styles.menuItem, !isLast && styles.menuItemBorder]} onPress={onPress}>
@@ -37,45 +86,36 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, text, onPress, isLast = false
     </TouchableOpacity>
 );
 
+
+// --- Componente Principal ---
 /**
- * @description
  * Tela de Perfil do usuário. Exibe um resumo das informações e serve como
- * ponto de entrada para o gerenciamento da conta.
+ * ponto de entrada para o gerenciamento da conta e outras seções do app.
  */
 const ProfileScreen: React.FC = () => {
     const navigation = useNavigation<ProfileScreenNavigationProp>();
-    const [loading, setLoading] = useState(true);
-    const [profile, setProfile] = useState<ProfileData>({ fullName: null, avatarUrl: null });
+    const { profile, loading } = useUserProfile();
 
-    useFocusEffect(
-        useCallback(() => {
-            const fetchProfile = async () => {
-                try {
-                    setLoading(true);
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (!user) throw new Error("Usuário não encontrado");
-
-                    const { data, error } = await supabase.from('profiles').select(`full_name, avatar_url`).eq('id', user.id).single();
-                    if (error && error.code !== 'PGRST116') throw error;
-                    
-                    if (data) {
-                        setProfile({
-                            fullName: data.full_name,
-                            avatarUrl: data.avatar_url ? `${data.avatar_url}?t=${new Date().getTime()}` : null
-                        });
-                    }
-                } catch (error: any) {
-                    Alert.alert('Erro ao carregar perfil', error.message);
-                } finally {
-                    setLoading(false);
-                }
-            };
-            fetchProfile();
-        }, [])
-    );
+    /**
+     * Lida com o logout do usuário, exibindo um `Alert` de confirmação antes.
+     */
+    const handleSignOut = () => {
+        Alert.alert(
+            "Sair da Conta",
+            "Você tem certeza que deseja sair?",
+            [
+                { text: "Cancelar", style: "cancel" },
+                { text: "Sair", style: "destructive", onPress: () => supabase.auth.signOut() }
+            ]
+        );
+    };
 
     if (loading) {
-        return <ActivityIndicator style={{ flex: 1 }} />;
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <ActivityIndicator style={{ flex: 1 }} size="large" />
+            </SafeAreaView>
+        );
     }
 
     return (
@@ -86,7 +126,7 @@ const ProfileScreen: React.FC = () => {
                     {profile.avatarUrl ? (
                         <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} />
                     ) : (
-                        <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center' }]}>
+                        <View style={[styles.avatar, styles.avatarPlaceholder]}>
                             <Ionicons name="person" size={50} color="#CBD5E0" />
                         </View>
                     )}
@@ -126,7 +166,7 @@ const ProfileScreen: React.FC = () => {
                     />
                 </View>
                 
-                <TouchableOpacity style={styles.logoutButton} onPress={() => supabase.auth.signOut()}>
+                <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
                     <Text style={styles.logoutButtonText}>Sair</Text>
                 </TouchableOpacity>
             </ScrollView>

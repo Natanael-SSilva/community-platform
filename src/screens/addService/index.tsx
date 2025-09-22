@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, SafeAreaView, TextInput, TouchableOpacity, Alert, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { 
+    View, Text, SafeAreaView, TextInput, TouchableOpacity, 
+    Alert, ScrollView, Image, ActivityIndicator 
+} from 'react-native';
 import { supabase } from '../../services/supabase';
 import { styles } from './style';
 import { Picker } from '@react-native-picker/picker';
@@ -7,6 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { decode } from 'base64-arraybuffer';
 
+// --- Tipos ---
 type Category = {
     id: number;
     name: string;
@@ -17,7 +21,13 @@ type SelectedImage = {
     base64: string;
 };
 
+/**
+ * Tela para adicionar um novo serviço.
+ * Permite ao usuário preencher informações do serviço, selecionar uma categoria,
+ * e fazer upload de até 4 imagens.
+ */
 const AddServiceScreen = () => {
+    // --- Estados ---
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
@@ -27,7 +37,9 @@ const AddServiceScreen = () => {
     const [loading, setLoading] = useState(false);
     const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
 
+    // --- Efeitos ---
     useEffect(() => {
+        /** Busca as categorias de serviço da base de dados ao montar o componente. */
         const fetchCategories = async () => {
             const { data, error } = await supabase
                 .from('categories')
@@ -39,35 +51,37 @@ const AddServiceScreen = () => {
             } else if (data) {
                 setCategories(data);
                 if (data.length > 0 && selectedCategory === null) {
-                    setSelectedCategory(data[0].id);
+                    setSelectedCategory(data[0].id); // Pré-seleciona a primeira categoria
                 }
             }
         };
         fetchCategories();
     }, []);
 
-    const pickImage = async (fromCamera: boolean) => {
+    // --- Funções ---
+    /**
+     * Abre a galeria de imagens para o usuário selecionar fotos.
+     * Limita a seleção a 4 imagens no total.
+     */
+    const pickImage = async () => {
         if (selectedImages.length >= 4) {
             Alert.alert("Limite atingido", "Você só pode adicionar até 4 fotos.");
             return;
         }
 
-        const options: ImagePicker.ImagePickerOptions = {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert("Permissão necessária", "Precisamos de acesso à sua galeria para adicionar fotos.");
+            return;
+        }
+        
+        const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [4, 3],
             quality: 0.7,
             base64: true,
-        };
-
-        let result;
-        if (fromCamera) {
-            await ImagePicker.requestCameraPermissionsAsync();
-            result = await ImagePicker.launchCameraAsync(options);
-        } else {
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
-            result = await ImagePicker.launchImageLibraryAsync(options);
-        }
+        });
 
         if (!result.canceled && result.assets && result.assets[0].base64) {
             const asset = result.assets[0];
@@ -75,20 +89,27 @@ const AddServiceScreen = () => {
         }
     };
     
+    /**
+     * Remove uma imagem da lista de imagens selecionadas.
+     * @param uriToRemove A URI da imagem a ser removida.
+     */
     const handleRemoveImage = (uriToRemove: string) => {
         setSelectedImages(prevImages => prevImages.filter(image => image.uri !== uriToRemove));
     };
 
+    /**
+     * Valida os dados, faz upload das imagens e salva o novo serviço no Supabase.
+     */
     const handleSaveService = async () => {
-        if (!title || !selectedCategory) {
-            Alert.alert("Erro", "Título e Categoria são obrigatórios.");
+        if (!title.trim() || !selectedCategory) {
+            Alert.alert("Campos obrigatórios", "O Título e a Categoria precisam ser preenchidos.");
             return;
         }
         setLoading(true);
 
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Usuário não encontrado.");
+            if (!user) throw new Error("Usuário não autenticado. Por favor, faça login novamente.");
 
             const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
@@ -109,48 +130,50 @@ const AddServiceScreen = () => {
                 const fileExt = image.uri.split('.').pop() || 'png';
                 const fileName = `${Date.now()}.${fileExt}`;
                 const filePath = `${user.id}/${fileName}`;
-                const imageArrayBuffer = decode(image.base64);
-
+                
                 const { error: uploadError } = await supabase.storage
                     .from('service_images')
-                    .upload(filePath, imageArrayBuffer, { contentType: `image/${fileExt}` });
+                    .upload(filePath, decode(image.base64), { contentType: `image/${fileExt}` });
 
                 if (uploadError) throw uploadError;
 
                 const { data: publicUrlData } = supabase.storage.from('service_images').getPublicUrl(filePath);
-                if (publicUrlData) {
-                    uploadedPhotoUrls.push(publicUrlData.publicUrl);
-                }
+                uploadedPhotoUrls.push(publicUrlData.publicUrl);
             }
 
-            const { error: insertError } = await supabase
-                .from('services')
-                .insert({
-                    user_id: user.id,
-                    title,
-                    description,
-                    category_id: selectedCategory,
-                    price: price ? parseFloat(price) : null,
-                    availability,
-                    photo_urls: uploadedPhotoUrls,
-                    location: profileData.location,
-                });
+            const serviceData = {
+                user_id: user.id,
+                title,
+                description,
+                category_id: selectedCategory,
+                price: price ? parseFloat(price) : null,
+                availability,
+                photo_urls: uploadedPhotoUrls,
+                location: profileData.location,
+            };
 
+            const { error: insertError } = await supabase.from('services').insert(serviceData);
             if (insertError) throw insertError;
 
             Alert.alert("Sucesso!", "Seu serviço foi cadastrado com sucesso!");
             
-            setTitle(''); setDescription(''); setPrice(''); setAvailability('');
+            // Reset form
+            setTitle(''); 
+            setDescription(''); 
+            setPrice(''); 
+            setAvailability('');
             setSelectedCategory(categories.length > 0 ? categories[0].id : null);
             setSelectedImages([]);
             
-        } catch (error: any) {
-            Alert.alert("Erro ao cadastrar serviço", error.message);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+            Alert.alert("Erro ao cadastrar serviço", errorMessage);
         } finally {
             setLoading(false);
         }
     };
 
+    // --- Renderização ---
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
@@ -181,8 +204,8 @@ const AddServiceScreen = () => {
                 <View style={styles.imageUploadContainer}>
                     <Text style={styles.label}>Fotos do Serviço (até 4)</Text>
                     <View style={styles.imagePreviewContainer}>
-                        {selectedImages.map((image, index) => (
-                            <View key={index}>
+                        {selectedImages.map((image) => (
+                            <View key={image.uri} style={styles.imageWrapper}>
                                 <Image source={{ uri: image.uri }} style={styles.imagePreview} />
                                 <TouchableOpacity onPress={() => handleRemoveImage(image.uri)} style={styles.imageRemoveButton}>
                                     <Text style={styles.imageRemoveButtonText}>×</Text>
@@ -190,8 +213,8 @@ const AddServiceScreen = () => {
                             </View>
                         ))}
                         {selectedImages.length < 4 && (
-                            <TouchableOpacity onPress={() => pickImage(false)} style={styles.addPhotoButton}>
-                                <Ionicons name="camera" size={30} color="#666" />
+                            <TouchableOpacity onPress={pickImage} style={styles.addPhotoButton}>
+                                <Ionicons name="add-circle-outline" size={40} color="#666" />
                             </TouchableOpacity>
                         )}
                     </View>

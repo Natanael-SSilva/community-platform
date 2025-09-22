@@ -1,14 +1,23 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, SafeAreaView, Image, Alert, ActivityIndicator, FlatList, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { 
+    View, Text, SafeAreaView, Image, Alert, ActivityIndicator, 
+    FlatList, ScrollView, TouchableOpacity, StatusBar, Dimensions
+} from 'react-native';
 import { useRoute, RouteProp, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../../services/supabase';
-import { AppStackParamList } from '../../navigation/types';
+import type { AppStackParamList } from '../../navigation/types';
 import { styles } from './style';
 import ReviewModal from '../../components/ReviewModal';
 import { Ionicons } from '@expo/vector-icons';
 
-// Tipos para os dados, mantendo o código limpo e seguro
+// --- Tipos ---
+//  Definindo o tipo do perfil localmente para evitar erro de importação
+type ProviderProfile = {
+    id: string;
+    full_name: string;
+    avatar_url: string;
+};
 type ReviewData = {
     id: number;
     rating: number;
@@ -22,74 +31,45 @@ type ServiceDetails = {
     price: number | null;
     photo_urls: string[] | null;
     availability: string | null;
-    profiles: { id: string; full_name: string; avatar_url: string; } | null;
+    profiles: ProviderProfile | null;
     categories: { name: string; } | null;
     reviews: ReviewData[];
 };
 type ServiceDetailRouteProp = RouteProp<AppStackParamList, 'ServiceDetail'>;
+type ServiceDetailNavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
-/**
- * @description
- * Subcomponente para renderizar um único item de avaliação.
- * Segue o princípio de "Single Responsibility", mantendo o código principal mais limpo.
- * @param {ReviewData} review - Os dados da avaliação a serem exibidos.
- * @returns {React.FC} Um componente de item de avaliação.
- */
-const ReviewItem: React.FC<{ review: ReviewData }> = ({ review }) => (
-    <View style={styles.reviewItem}>
-        <View style={styles.reviewHeader}>
-            <Image source={{ uri: review.profiles?.avatar_url || 'https://via.placeholder.com/40' }} style={styles.reviewAvatar} />
-            <Text style={styles.reviewAuthor}>{review.profiles?.full_name || 'Usuário'}</Text>
-            <View style={styles.reviewStars}>
-                {[1, 2, 3, 4, 5].map(star => <Ionicons key={star} name="star" size={16} color={star <= review.rating ? "#FFC107" : "#CCC"} />)}
-            </View>
-        </View>
-        {review.comment && <Text style={styles.reviewComment}>{review.comment}</Text>}
-    </View>
-);
-
-/**
- * @description
- * Tela que exibe os detalhes completos de um serviço, incluindo informações do prestador e avaliações.
- * Permite ao usuário iniciar uma conversa ou deixar uma nova avaliação.
- */
-const ServiceDetailScreen: React.FC = () => {
-    const route = useRoute<ServiceDetailRouteProp>();
-    const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
-    const { serviceId } = route.params;
-
+// --- Custom Hook ---
+const useServiceDetails = (serviceId: number) => {
+    const navigation = useNavigation<ServiceDetailNavigationProp>();
     const [service, setService] = useState<ServiceDetails | null>(null);
     const [loading, setLoading] = useState(true);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [isReviewModalVisible, setReviewModalVisible] = useState(false);
 
-    /**
-     * @description
-     * Busca os detalhes completos do serviço no backend.
-     * Envolvida em useCallback para ser otimizada e reutilizada.
-     */
     const fetchServiceDetails = useCallback(async () => {
         if (!serviceId) return;
+        setLoading(true);
         try {
-            setLoading(true);
-            const { data, error } = await supabase.from('services').select(`*, profiles(id, full_name, avatar_url), categories(name), reviews(id, rating, comment, profiles(full_name, avatar_url))`).eq('id', serviceId).single();
+            const { data, error } = await supabase
+                .from('services')
+                .select(`*, profiles(*), categories(name), reviews(id, rating, comment, profiles(full_name, avatar_url))`)
+                .eq('id', serviceId)
+                .single();
+
             if (error) throw error;
-            setService(data as any);
-        } catch (error: any) {
-            Alert.alert("Erro", "Não foi possível carregar os detalhes do serviço.");
+            setService(data as ServiceDetails);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Não foi possível carregar os detalhes.";
+            Alert.alert("Erro", message);
         } finally {
             setLoading(false);
         }
     }, [serviceId]);
 
-    // CORREÇÃO: A chamada da função async é feita dentro do useCallback,
-    // garantindo que a função passada para useFocusEffect não retorna uma Promise.
     useFocusEffect(
-      useCallback(() => {
-        fetchServiceDetails();
-      }, [fetchServiceDetails])
+        useCallback(() => {
+            fetchServiceDetails();
+        }, [fetchServiceDetails])
     );
-    
+
     const handleSubmitReview = async (rating: number, comment: string) => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -98,12 +78,15 @@ const ServiceDetailScreen: React.FC = () => {
                 Alert.alert("Ação inválida", "Você não pode avaliar o seu próprio serviço.");
                 return;
             }
+
             const { error } = await supabase.from('reviews').insert({ service_id: serviceId, user_id: user.id, rating, comment });
             if (error) throw error;
+            
             Alert.alert("Sucesso", "Sua avaliação foi enviada!");
             fetchServiceDetails();
-        } catch (error: any) {
-            Alert.alert("Erro ao avaliar", error.message);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+            Alert.alert("Erro ao avaliar", message);
         }
     };
 
@@ -111,26 +94,53 @@ const ServiceDetailScreen: React.FC = () => {
         if (!service?.profiles?.id) return;
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Usuário não logado");
+            if (!user) throw new Error("Você precisa estar logado para iniciar uma conversa.");
             if (user.id === service.profiles.id) {
                 Alert.alert("Ação inválida", "Você não pode iniciar uma conversa consigo mesmo.");
                 return;
             }
+
             const { data: conversationId, error } = await supabase.rpc('get_or_create_conversation', {
                 participant1_id_input: user.id,
                 participant2_id_input: service.profiles.id
             });
             if (error) throw error;
-            if (conversationId) {
-                navigation.navigate('Chat', {
-                    conversationId: conversationId,
-                    recipient: service.profiles as any
-                });
+            
+            if (conversationId && service.profiles) { // Checagem de segurança
+                navigation.navigate('Chat', { conversationId, recipient: service.profiles });
             }
-        } catch (error: any) {
-            Alert.alert("Erro ao iniciar conversa", error.message);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+            Alert.alert("Erro ao iniciar conversa", message);
         }
     };
+    return { service, loading, handleSubmitReview, handleStartConversation };
+};
+
+
+// --- Subcomponentes  ---
+const ReviewItem: React.FC<{ review: ReviewData }> = ({ review }) => (
+    <View style={styles.reviewItem}>
+        <View style={styles.reviewHeader}>
+            <Image source={{ uri: review.profiles?.avatar_url }} style={styles.reviewAvatar} />
+            <Text style={styles.reviewAuthor}>{review.profiles?.full_name || 'Usuário Anônimo'}</Text>
+            <View style={styles.reviewStars}>
+                {[...Array(5)].map((_, i) => <Ionicons key={i} name="star" size={16} color={i < review.rating ? "#FFC107" : "#CCC"} />)}
+            </View>
+        </View>
+        {review.comment && <Text style={styles.reviewComment}>{review.comment}</Text>}
+    </View>
+);
+
+// --- Componente Principal ---
+const ServiceDetailScreen: React.FC = () => {
+    const route = useRoute<ServiceDetailRouteProp>();
+    const { serviceId } = route.params;
+    const { service, loading, handleSubmitReview, handleStartConversation } = useServiceDetails(serviceId);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [isReviewModalVisible, setReviewModalVisible] = useState(false);
+    
+    const imageWidth = Dimensions.get('window').width;
 
     if (loading) {
         return <ActivityIndicator style={styles.loadingContainer} size="large" color="#3F83F8" />;
@@ -142,52 +152,72 @@ const ServiceDetailScreen: React.FC = () => {
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
-            <ReviewModal visible={isReviewModalVisible} onClose={() => setReviewModalVisible(false)} onSubmit={handleSubmitReview} />
+            <ReviewModal 
+                visible={isReviewModalVisible} 
+                onClose={() => setReviewModalVisible(false)} 
+                // CORREÇÃO 2: Adicionando 'async' para corresponder à prop onSubmit, que espera uma Promise
+                onSubmit={async (rating, comment) => {
+                    await handleSubmitReview(rating, comment); // Adicionado await para garantir a ordem
+                    setReviewModalVisible(false);
+                }}
+            />
             <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <FlatList
-                    data={service.photo_urls}
-                    renderItem={({ item }) => <Image source={{ uri: item }} style={styles.image} />}
-                    keyExtractor={(item, index) => index.toString()}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    onScroll={(e) => {
-                        const index = Math.round(e.nativeEvent.contentOffset.x / styles.image.width);
-                        setCurrentImageIndex(index);
-                    }}
-                />
+                {/* Carrossel de Imagens */}
+                {service.photo_urls && service.photo_urls.length > 0 && (
+                    <FlatList
+                        data={service.photo_urls}
+                        renderItem={({ item }) => <Image source={{ uri: item }} style={[styles.image, { width: imageWidth }]} />}
+                        keyExtractor={(item) => item}
+                        horizontal
+                        pagingEnabled
+                        showsHorizontalScrollIndicator={false}
+                        onScroll={(e) => {
+                            const index = Math.round(e.nativeEvent.contentOffset.x / imageWidth);
+                            setCurrentImageIndex(index);
+                        }}
+                    />
+                )}
                 {service.photo_urls && service.photo_urls.length > 1 && (
                     <Text style={styles.imageCounter}>{currentImageIndex + 1} / {service.photo_urls.length}</Text>
                 )}
+                
+                {/* Informações Principais */}
                 <View style={styles.contentContainer}>
-                    <Text style={styles.categoryTag}>{service.categories?.name || 'Categoria'}</Text>
+                    <Text style={styles.categoryTag}>{service.categories?.name || 'Sem Categoria'}</Text>
                     <Text style={styles.title}>{service.title}</Text>
                     <TouchableOpacity style={styles.providerContainer}>
-                        <Image source={{ uri: service.profiles?.avatar_url || 'https://via.placeholder.com/50' }} style={styles.providerAvatar} />
+                        <Image source={{ uri: service.profiles?.avatar_url }} style={styles.providerAvatar} />
                         <View>
                             <Text>Oferecido por</Text>
-                            <Text style={styles.providerName}>{service.profiles?.full_name || 'Usuário'}</Text>
+                            <Text style={styles.providerName}>{service.profiles?.full_name || 'Usuário Anônimo'}</Text>
                         </View>
                     </TouchableOpacity>
                 </View>
+
+                {/* Detalhes e Avaliações */}
                 <View style={styles.contentContainer}>
                     <Text style={styles.sectionTitle}>Detalhes do serviço</Text>
                     <Text style={styles.description}>{service.description || 'Nenhuma descrição fornecida.'}</Text>
-                    <Text style={styles.sectionTitle}>Avaliações</Text>
-                    <TouchableOpacity style={styles.addReviewButton} onPress={() => setReviewModalVisible(true)}>
-                        <Text style={styles.addReviewButtonText}>Deixar uma avaliação</Text>
-                    </TouchableOpacity>
+                    
+                    <View style={styles.reviewsHeader}>
+                        <Text style={styles.sectionTitle}>Avaliações</Text>
+                        <TouchableOpacity style={styles.addReviewButton} onPress={() => setReviewModalVisible(true)}>
+                            <Text style={styles.addReviewButtonText}>Avaliar</Text>
+                        </TouchableOpacity>
+                    </View>
                     {service.reviews && service.reviews.length > 0 ? (
                         service.reviews.map((review) => <ReviewItem key={review.id} review={review} />)
                     ) : (
-                        <Text style={{textAlign: 'center', marginTop: 20, color: '#666'}}>Seja o primeiro a avaliar este serviço!</Text>
+                        <Text style={styles.noReviewsText}>Seja o primeiro a avaliar este serviço!</Text>
                     )}
                 </View>
             </ScrollView>
+            
+            {/* Rodapé com Preço e Ação */}
             <View style={styles.footer}>
                 <View>
                     <Text style={styles.priceLabel}>A partir de</Text>
-                    <Text style={styles.priceValue}>R$ {service.price?.toFixed(2) || 'A combinar'}</Text>
+                    <Text style={styles.priceValue}>R$ {service.price?.toFixed(2).replace('.', ',') || 'A combinar'}</Text>
                 </View>
                 <TouchableOpacity style={styles.actionButton} onPress={handleStartConversation}>
                     <Text style={styles.actionButtonText}>Pedir Orçamento</Text>

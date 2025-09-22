@@ -12,18 +12,20 @@ import LocationSelectorModal from '../../components/LocationSelectorModal';
 import { styles } from './style';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AppStackParamList } from '../../navigation/AppNavigator';
+// CORREÇÃO: Importação do tipo do arquivo central 'types'
+import type { AppStackParamList } from '../../navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList, 'CompleteProfile'>;
 
 /**
- * @description
  * Tela de "Completar Cadastro" (Onboarding).
- * Coleta informações essenciais do perfil após a confirmação do e-mail.
+ * Coleta informações essenciais do perfil do usuário, como nome, telefone,
+ * localização e foto, após a confirmação do e-mail inicial.
  */
 const CompleteProfileScreen: React.FC = () => {
     const navigation = useNavigation<NavigationProp>();
 
+    // --- Estados do Componente ---
     const [fullName, setFullName] = useState('');
     const [phone, setPhone] = useState('');
     const [location, setLocation] = useState('');
@@ -31,12 +33,13 @@ const CompleteProfileScreen: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [isLocationModalVisible, setLocationModalVisible] = useState(false);
 
+    // --- Funções ---
+
     /**
-     * Abre a galeria ou a câmera para o usuário selecionar uma foto de perfil.
-     * @param {boolean} fromCamera - Define se a imagem deve ser capturada pela câmera.
+     * Lida com a seleção de uma imagem de avatar, seja da câmera ou da galeria.
+     * @param source Define a origem da imagem ('camera' ou 'gallery').
      */
-    const pickImage = async (fromCamera: boolean) => {
-        let result;
+    const handleAvatarSelection = async (source: 'camera' | 'gallery') => {
         const options: ImagePicker.ImagePickerOptions = {
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
@@ -45,11 +48,20 @@ const CompleteProfileScreen: React.FC = () => {
             base64: true,
         };
     
-        if (fromCamera) {
-            await ImagePicker.requestCameraPermissionsAsync();
+        let result;
+        if (source === 'camera') {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert("Permissão negada", "Precisamos de acesso à câmera para tirar uma foto.");
+                return;
+            }
             result = await ImagePicker.launchCameraAsync(options);
         } else {
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert("Permissão negada", "Precisamos de acesso à galeria para escolher uma foto.");
+                return;
+            }
             result = await ImagePicker.launchImageLibraryAsync(options);
         }
     
@@ -59,12 +71,12 @@ const CompleteProfileScreen: React.FC = () => {
     };
 
     /**
-     * Realiza o upload da imagem selecionada para o Supabase Storage.
-     * @param {string} base64 - A imagem codificada em base64.
+     * Faz o upload da imagem do avatar para o Supabase Storage e atualiza o perfil.
+     * @param base64 A imagem codificada em base64.
      */
     const uploadAvatar = async (base64: string) => {
+        setLoading(true);
         try {
-            setLoading(true);
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("Usuário não encontrado");
 
@@ -78,14 +90,18 @@ const CompleteProfileScreen: React.FC = () => {
             if (uploadError) throw uploadError;
 
             const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-            const publicUrl = `${publicUrlData.publicUrl}?t=${new Date().getTime()}`;
+            const publicUrl = `${publicUrlData.publicUrl}?t=${new Date().getTime()}`; // Cache busting
             setAvatarUrl(publicUrl);
 
-            // Atualiza a URL do avatar na tabela de perfis
-            const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: publicUrl })
+                .eq('id', user.id);
+                
             if (updateError) throw updateError;
-        } catch (error: any) {
-            Alert.alert("Erro no upload", error.message);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+            Alert.alert("Erro no upload", errorMessage);
         } finally {
             setLoading(false);
         }
@@ -96,7 +112,7 @@ const CompleteProfileScreen: React.FC = () => {
      * Em caso de sucesso, reseta a navegação para a tela principal do app.
      */
     const handleCompleteProfile = async () => {
-        if (!fullName || !phone || !location) {
+        if (!fullName.trim() || !phone || !location) {
             Alert.alert("Campos obrigatórios", "Por favor, preencha todas as informações para continuar.");
             return;
         }
@@ -108,7 +124,7 @@ const CompleteProfileScreen: React.FC = () => {
 
             const updates = {
                 id: user.id,
-                full_name: fullName,
+                full_name: fullName.trim(),
                 phone,
                 location,
                 updated_at: new Date(),
@@ -117,20 +133,33 @@ const CompleteProfileScreen: React.FC = () => {
             const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
             if (error) throw error;
             
-            // SUCESSO! Reseta a pilha de navegação para a tela principal.
-            // O usuário não poderá "voltar" para esta tela de onboarding.
+            // Navega para a tela principal, impedindo o usuário de voltar para o onboarding
             navigation.reset({
                 index: 0,
                 routes: [{ name: 'MainTabs' }],
             });
 
-        } catch (error: any) {
-            Alert.alert("Erro ao salvar perfil", error.message);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+            Alert.alert("Erro ao salvar perfil", errorMessage);
         } finally {
             setLoading(false);
         }
     };
 
+    const showImagePickerOptions = () => {
+        Alert.alert(
+            "Adicionar Foto", 
+            "Escolha uma opção", 
+            [
+                { text: "Tirar Foto", onPress: () => handleAvatarSelection('camera') }, 
+                { text: "Escolher da Galeria", onPress: () => handleAvatarSelection('gallery') }, 
+                { text: "Cancelar", style: "cancel" }
+            ]
+        );
+    };
+
+    // --- Renderização ---
     return (
         <SafeAreaView style={styles.safeArea}>
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -147,7 +176,7 @@ const CompleteProfileScreen: React.FC = () => {
                         <Text style={styles.subtitle}>Falta pouco! Complete seu perfil para começar a usar a plataforma.</Text>
                     </View>
 
-                    <TouchableOpacity style={styles.avatarPicker} onPress={() => Alert.alert("Adicionar Foto", "Escolha uma opção", [{ text: "Tirar Foto", onPress: () => pickImage(true) }, { text: "Escolher da Galeria", onPress: () => pickImage(false) }, { text: "Cancelar", style: "cancel" }])}>
+                    <TouchableOpacity style={styles.avatarPicker} onPress={showImagePickerOptions}>
                         {avatarUrl ? (
                             <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
                         ) : (
@@ -184,7 +213,6 @@ const CompleteProfileScreen: React.FC = () => {
                     <TouchableOpacity style={styles.button} onPress={handleCompleteProfile} disabled={loading}>
                         {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Finalizar Cadastro</Text>}
                     </TouchableOpacity>
-
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>

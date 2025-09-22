@@ -29,6 +29,11 @@ export const styles = StyleSheet.create({
         marginBottom: 12,
         backgroundColor: '#E2E8F0',
     },
+    // Estilo para o placeholder do avatar quando não há imagem
+    avatarPlaceholder: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     fullName: {
         fontSize: 22,
         fontWeight: 'bold',

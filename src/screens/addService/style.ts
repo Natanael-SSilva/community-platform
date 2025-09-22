@@ -44,23 +44,26 @@ export const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'flex-start',
+    },
+    // NOVO: Contêiner para cada imagem e seu botão de remover
+    imageWrapper: {
+        position: 'relative',
+        marginRight: 10,
         marginBottom: 10,
     },
     imagePreview: {
         width: 80,
         height: 80,
         borderRadius: 8,
-        marginRight: 10,
-        marginBottom: 10,
         borderWidth: 1,
         borderColor: '#E0E0E0',
         backgroundColor: '#F0F0F0',
     },
     imageRemoveButton: {
         position: 'absolute',
-        top: -5,
-        right: 5,
-        backgroundColor: 'rgba(255,0,0,0.8)',
+        top: -8, // Ajuste para melhor posicionamento
+        right: -8, // Ajuste para melhor posicionamento
+        backgroundColor: 'rgba(0,0,0,0.7)',
         borderRadius: 15,
         width: 25,
         height: 25,
@@ -70,7 +73,8 @@ export const styles = StyleSheet.create({
     imageRemoveButtonText: {
         color: '#FFFFFF',
         fontWeight: 'bold',
-        fontSize: 16,
+        fontSize: 14,
+        lineHeight: 16,
     },
     addPhotoButton: {
         width: 80,
@@ -89,7 +93,7 @@ export const styles = StyleSheet.create({
         borderRadius: 8,
         alignItems: 'center',
         marginTop: 20,
-        marginBottom: 30, // Adiciona margem inferior para o botão final
+        marginBottom: 30, 
     },
     buttonText: {
         color: '#FFFFFF',
