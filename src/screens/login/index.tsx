@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { 
-    View, Text, TextInput, TouchableOpacity, SafeAreaView, Modal, 
+    View, Text, TextInput, TouchableOpacity, SafeAreaView, 
     ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, StatusBar 
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -8,7 +8,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { styles } from './style';
-// CORREÇÃO: Importando o tipo do arquivo central 'types'
 import type { AuthStackParamList } from '../../navigation/types';
 
 /**
@@ -49,15 +48,12 @@ const LoginScreen: React.FC = () => {
         });
 
         if (signInError) {
-            // Traduz a mensagem de erro do Supabase para algo mais amigável.
             if (signInError.message === 'Email not confirmed') {
                 setError('Por favor, confirme seu e-mail antes de fazer login.');
             } else {
                 setError('E-mail ou senha inválidos.');
             }
         }
-        // Em caso de sucesso, o listener global de autenticação no App.tsx
-        // irá detectar a mudança de sessão e redirecionar o usuário.
         setLoading(false);
     };
 
@@ -85,9 +81,6 @@ const LoginScreen: React.FC = () => {
                 style={{ flex: 1 }}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
             >
-                {/* O modal de sucesso foi removido pois o redirecionamento
-                    deve ser feito pelo listener de autenticação global */}
-                
                 <ScrollView 
                     contentContainerStyle={styles.scrollContainer} 
                     keyboardShouldPersistTaps="handled"
