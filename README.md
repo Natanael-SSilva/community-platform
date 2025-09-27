@@ -39,7 +39,7 @@
 
 ## 📋 Sobre o Projeto
 
-O **LINKA** é uma aplicação móvel que visa conectar prestadores de serviços locais (autônomos e microempreendedores) a moradores da mesma comunidade[cite: 93, 107]. [cite_start]O projeto funciona como um marketplace hiperlocal, promovendo a inclusão digital de trabalhadores informais e fortalecendo a economia local através da confiança e da colaboração entre vizinhos[cite: 94, 98].
+O **LINKA** é uma aplicação móvel que visa conectar prestadores de serviços locais (autônomos e microempreendedores) a moradores da mesma comunidade. O projeto funciona como um marketplace hiperlocal, promovendo a inclusão digital de trabalhadores informais e fortalecendo a economia local através da confiança e da colaboração entre vizinhos.
 
 Este projeto é um trabalho prático que integra os conhecimentos de múltiplas disciplinas do 8º período de Ciência da Computação.
 
