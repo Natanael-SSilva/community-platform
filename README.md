@@ -138,6 +138,7 @@ O escopo do nosso Produto Mínimo Viável (MVP) foi concluído, validando o cicl
       ```
 
 4.  **Inicie o servidor de desenvolvimento**
+
     ```bash
     pnpm start
     ```
