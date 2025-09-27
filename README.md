@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License MIT">
 </p>
 
-> [cite_start]**Nota:** Este é um projeto acadêmico em desenvolvimento para as disciplinas de Fábrica de Software e Tópicos Avançados em Ciência da Computação na UNINORTE[cite: 1, 2].
+> **Nota:** Este é um projeto acadêmico em desenvolvimento para as disciplinas de DevOps, Extensão, Fábrica de Software e Tópicos Avançados em Ciência da Computação na UNINORTE.
 
 ---
 
@@ -39,7 +39,7 @@
 
 ## 📋 Sobre o Projeto
 
-[cite_start]O **LINKA** é uma aplicação móvel que visa conectar prestadores de serviços locais (autônomos e microempreendedores) a moradores da mesma comunidade[cite: 93, 107]. [cite_start]O projeto funciona como um marketplace hiperlocal, promovendo a inclusão digital de trabalhadores informais e fortalecendo a economia local através da confiança e da colaboração entre vizinhos[cite: 94, 98].
+O **LINKA** é uma aplicação móvel que visa conectar prestadores de serviços locais (autônomos e microempreendedores) a moradores da mesma comunidade[cite: 93, 107]. [cite_start]O projeto funciona como um marketplace hiperlocal, promovendo a inclusão digital de trabalhadores informais e fortalecendo a economia local através da confiança e da colaboração entre vizinhos[cite: 94, 98].
 
 Este projeto é um trabalho prático que integra os conhecimentos de múltiplas disciplinas do 8º período de Ciência da Computação.
 
@@ -47,10 +47,10 @@ Este projeto é um trabalho prático que integra os conhecimentos de múltiplas 
 
 ## 🎯 Objetivos
 
-* [cite_start]**Conectar** a oferta e a demanda de serviços em uma escala hiperlocal[cite: 97].
-* [cite_start]**Promover Inclusão Digital** para trabalhadores que atuam fora das grandes plataformas[cite: 94, 98].
-* [cite_start]**Construir um Ecossistema de Confiança** através de um sistema de avaliações e chat direto[cite: 101].
-* [cite_start]**Estimular a Economia Local**, incentivando que o capital circule dentro da própria comunidade[cite: 98].
+* **Conectar** a oferta e a demanda de serviços em uma escala hiperlocal.
+* **Promover Inclusão Digital** para trabalhadores que atuam fora das grandes plataformas.
+* **Construir um Ecossistema de Confiança** através de um sistema de avaliações e chat direto.
+* **Estimular a Economia Local**, incentivando que o capital circule dentro da própria comunidade.
 
 <a id="stack-tecnológica"></a>
 
