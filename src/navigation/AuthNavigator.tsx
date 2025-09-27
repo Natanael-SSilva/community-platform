@@ -27,12 +27,36 @@ const AuthNavigator: React.FC = () => {
         headerTintColor: '#2D3748',
       }}
     >
-      <AuthStack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
-      <AuthStack.Screen name="Login" component={LoginScreen} options={{ title: 'Login' }} />
-      <AuthStack.Screen name="Register" component={RegisterScreen} options={{ title: 'Cadastro' }} />
-      <AuthStack.Screen name="ConfirmEmail" component={ConfirmEmailScreen} options={{ title: 'Confirmação Pendente' }} />
-      <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: 'Recuperar Senha' }} />
-      <AuthStack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ title: 'Redefinir Senha' }} />
+      <AuthStack.Screen
+        name="Welcome"
+        component={WelcomeScreen}
+        options={{ headerShown: false }}
+      />
+      <AuthStack.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{ title: 'Login' }}
+      />
+      <AuthStack.Screen
+        name="Register"
+        component={RegisterScreen}
+        options={{ title: 'Cadastro' }}
+      />
+      <AuthStack.Screen
+        name="ConfirmEmail"
+        component={ConfirmEmailScreen}
+        options={{ title: 'Confirmação Pendente' }}
+      />
+      <AuthStack.Screen
+        name="ForgotPassword"
+        component={ForgotPasswordScreen}
+        options={{ title: 'Recuperar Senha' }}
+      />
+      <AuthStack.Screen
+        name="ResetPassword"
+        component={ResetPasswordScreen}
+        options={{ title: 'Redefinir Senha' }}
+      />
     </AuthStack.Navigator>
   );
 };

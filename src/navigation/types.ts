@@ -7,39 +7,39 @@
 
 // Tipo reutilizável para um perfil de usuário
 export type Profile = {
-    id: string;
-    full_name: string;
-    avatar_url: string | null; // avatar pode ser nulo
+  id: string;
+  full_name: string;
+  avatar_url: string | null; // avatar pode ser nulo
 };
 
 // Tipos para o navegador de Autenticação
 export type AuthStackParamList = {
-    Welcome: undefined;
-    Login: undefined;
-    Register: undefined;
-    ConfirmEmail: { email: string };
-    ForgotPassword: undefined;
-    ResetPassword: undefined;
+  Welcome: undefined;
+  Login: undefined;
+  Register: undefined;
+  ConfirmEmail: { email: string };
+  ForgotPassword: undefined;
+  ResetPassword: undefined;
 };
 
 // Tipos para o navegador principal (área logada)
 export type AppStackParamList = {
-    MainTabs: undefined;
-    CompleteProfile: undefined;
-    EditProfile: undefined;
-    ChangePassword: undefined;
-    AddService: undefined;
-    ServiceDetail: { serviceId: number };
-    Chat: {
-        conversationId: number;
-        recipient: Profile; 
-    };
+  MainTabs: undefined;
+  CompleteProfile: undefined;
+  EditProfile: undefined;
+  ChangePassword: undefined;
+  AddService: undefined;
+  ServiceDetail: { serviceId: number };
+  Chat: {
+    conversationId: number;
+    recipient: Profile;
+  };
 };
 
 // Tipos para o navegador de Abas (Tabs)
 export type TabParamList = {
-    Início: undefined;
-    Pesquisar: undefined;
-    Mensagens: undefined;
-    Perfil: undefined;
+  Início: undefined;
+  Pesquisar: undefined;
+  Mensagens: undefined;
+  Perfil: undefined;
 };

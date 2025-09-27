@@ -20,7 +20,7 @@ jobs:
       - name: 3. Configurar ambiente Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: '20'
           cache: 'pnpm'
 
       - name: 4. Instalar dependências
@@ -44,7 +44,7 @@ jobs:
       - name: 3. Configurar ambiente Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: '20'
           cache: 'pnpm'
 
       - name: 4. Instalar dependências
@@ -71,7 +71,7 @@ jobs:
       - name: 3. Configurar ambiente Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: '20'
           cache: 'pnpm'
 
       - name: 4. Instalar dependências

@@ -35,10 +35,16 @@ export default function App() {
     });
 
     // Ouve as mudanças de estado (login, logout, TOKEN_REFRESHED, PASSWORD_RECOVERY)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       // Garante que o loading seja desativado em todos os eventos relevantes
-      if (_event === 'SIGNED_OUT' || _event === 'SIGNED_IN' || _event === 'PASSWORD_RECOVERY') {
+      if (
+        _event === 'SIGNED_OUT' ||
+        _event === 'SIGNED_IN' ||
+        _event === 'PASSWORD_RECOVERY'
+      ) {
         setLoading(false);
       }
     });
@@ -72,7 +78,10 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer linking={linking} fallback={<Text>Carregando...</Text>}>
+      <NavigationContainer
+        linking={linking}
+        fallback={<Text>Carregando...</Text>}
+      >
         {session && session.user ? <AppNavigator /> : <AuthNavigator />}
       </NavigationContainer>
     </SafeAreaProvider>

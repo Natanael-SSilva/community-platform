@@ -9,28 +9,33 @@ import { styles } from './style';
  * Tipagem para a propriedade de navegação específica desta tela.
  * Ajuda o TypeScript a autocompletar e validar as rotas e parâmetros.
  */
-type HomeScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'MainTabs'>;
+type HomeScreenNavigationProp = NativeStackNavigationProp<
+  AppStackParamList,
+  'MainTabs'
+>;
 
 /**
  * Tela inicial do aplicativo (Home).
  * Apresenta uma mensagem de boas-vindas e um botão de ação principal.
  */
 const HomeScreen = () => {
-    const navigation = useNavigation<HomeScreenNavigationProp>();
+  const navigation = useNavigation<HomeScreenNavigationProp>();
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <Text style={styles.title}>Bem-vindo à Plataforma!</Text>
-            <Text style={styles.subtitle}>Anuncie seus serviços ou encontre a ajuda que precisa na sua comunidade.</Text>
+  return (
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Bem-vindo à Plataforma!</Text>
+      <Text style={styles.subtitle}>
+        Anuncie seus serviços ou encontre a ajuda que precisa na sua comunidade.
+      </Text>
 
-            <TouchableOpacity 
-                style={styles.button}
-                onPress={() => navigation.navigate('AddService')}
-            >
-                <Text style={styles.buttonText}>Anunciar um Serviço</Text>
-            </TouchableOpacity>
-        </SafeAreaView>
-    );
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('AddService')}
+      >
+        <Text style={styles.buttonText}>Anunciar um Serviço</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
 };
 
 export default HomeScreen;
