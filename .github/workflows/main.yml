@@ -1,26 +1,72 @@
-name:  Verificacao
+name: Verificação de Qualidade do Código
+on: [push, pull_request]
 
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+permissions:
+  contents: read
+
 jobs:
-
-  build-and-lint:
+  prettier:
+    name: Verificação de Formatação (Prettier)
     runs-on: ubuntu-latest
-
     steps:
-      - name: 1. Verificando o código do repositório
+      - name: 1. Baixar o código do repositório
         uses: actions/checkout@v4
 
-      - name: 2. Configurando o ambiente Node.js
+      - name: 2. Configurar ambiente Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "20"
 
-      - name: 3. Instalando as dependências
-        run: npm install
+      - name: 3. Configurar PNPM
+        uses: pnpm/action-setup@v4
 
-      - name: 4. Executando o Linter (Verificação de Código)
-        run: npm run lint
+      - name: 4. Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: 5. Rodar a verificação do Prettier
+        run: pnpm run lint:prettier:check
+
+  eslint:
+    name: Verificação de Código (ESLint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Baixar o código do repositório
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar ambiente Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 3. Configurar PNPM
+        uses: pnpm/action-setup@v4
+
+      - name: 4. Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: 5. Rodar a verificação do ESLint
+        run: pnpm run lint
+
+  commitlint:
+    name: Verificação de Commits (Commitlint)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: 1. Baixar o código do repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 2. Configurar ambiente Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 3. Configurar PNPM
+        uses: pnpm/action-setup@v4
+
+      - name: 4. Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: 5. Rodar a verificação do Commitlint
+        run: pnpm exec commitlint --from ${{ github.event.before }} --to ${{ github.sha }} --verbose
