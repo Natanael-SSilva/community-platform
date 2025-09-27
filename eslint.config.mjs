@@ -1,6 +1,7 @@
 import tseslint from "typescript-eslint";
 import pluginReact from "eslint-plugin-react";
 import { defineConfig } from "eslint/config";
+import prettierConfig from "eslint-config-prettier";
 
 export default defineConfig([
   {
@@ -27,4 +28,5 @@ export default defineConfig([
       "@typescript-eslint/no-require-imports": "off",
     },
   },
+  prettierConfig,
 ]);

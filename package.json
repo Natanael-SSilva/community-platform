@@ -7,20 +7,28 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "@react-native-picker/picker": "2.11.1",
-    "@react-navigation/bottom-tabs": "^7.4.6",
+    "@react-native-picker/picker": "2.11.2",
+    "@react-navigation/bottom-tabs": "^7.4.7",
     "@react-navigation/native": "^7.1.17",
-    "@react-navigation/native-stack": "^7.3.25",
-    "@supabase/supabase-js": "^2.56.1",
+    "@react-navigation/native-stack": "^7.3.26",
+    "@supabase/supabase-js": "^2.58.0",
     "base64-arraybuffer": "^1.0.2",
     "date-fns": "^4.1.0",
-    "expo": "54.0.7",
+    "expo": "54.0.10",
+    "expo-font": "~14.0.8",
     "expo-image-picker": "~17.0.8",
     "expo-linking": "~8.0.8",
     "expo-sharing": "~14.0.7",
@@ -29,21 +37,37 @@
     "react-dom": "19.1.0",
     "react-native": "0.81.4",
     "react-native-mask-input": "^1.2.3",
-    "react-native-safe-area-context": "~5.6.0",
+    "react-native-safe-area-context": "~5.6.1",
     "react-native-screens": "~4.16.0",
-    "react-native-url-polyfill": "^2.0.0",
-    "react-native-web": "^0.21.0",
-    "expo-font": "~14.0.8"
+    "react-native-url-polyfill": "^3.0.0",
+    "react-native-web": "^0.21.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.2",
-    "@eslint/js": "^9.34.0",
-    "@types/react": "~19.1.10",
-    "eslint": "^9.34.0",
+    "@babel/core": "^7.28.4",
+    "@commitlint/cli": "^20.0.0",
+    "@commitlint/config-conventional": "^20.0.0",
+    "@eslint/js": "^9.36.0",
+    "@types/react": "~19.1.14",
+    "@typescript-eslint/eslint-plugin": "^8.44.1",
+    "@typescript-eslint/parser": "^8.44.1",
+    "eslint": "^9.36.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react": "^7.37.5",
-    "globals": "^16.3.0",
+    "globals": "^16.4.0",
+    "husky": "^9.1.7",
+    "jiti": "^2.6.0",
+    "lint-staged": "^16.2.1",
+    "prettier": "^3.6.2",
     "typescript": "~5.9.2",
-    "typescript-eslint": "^8.41.0"
+    "typescript-eslint": "^8.44.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.1.0",
+      "react-dom": "19.1.0",
+      "react-native-renderer": "19.1.0"
+    }
   },
   "private": true
 }
