@@ -5,14 +5,10 @@ import { View, ActivityIndicator, Text } from 'react-native';
 import * as Linking from 'expo-linking';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { supabase } from './src/services/supabase';
-
-// Importação dos componentes de Navegação
 import AuthNavigator from './src/navigation/AuthNavigator';
 import AppNavigator from './src/navigation/AppNavigator';
-
 import { AuthStackParamList, AppStackParamList } from './src/navigation/types';
 
-// Cria um prefixo para o nosso deep link, baseado no 'scheme' definido em app.json.
 const prefix = Linking.createURL('/');
 
 /**
@@ -28,18 +24,15 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Busca a sessão inicial para evitar que a tela de login pisque na abertura.
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // Ouve as mudanças de estado (login, logout, TOKEN_REFRESHED, PASSWORD_RECOVERY)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      // Garante que o loading seja desativado em todos os eventos relevantes
       if (
         _event === 'SIGNED_OUT' ||
         _event === 'SIGNED_IN' ||
@@ -49,7 +42,6 @@ export default function App() {
       }
     });
 
-    // Limpa a inscrição ao desmontar o componente para evitar vazamentos de memória.
     return () => subscription.unsubscribe();
   }, []);
 
@@ -62,7 +54,6 @@ export default function App() {
     prefixes: [prefix],
     config: {
       screens: {
-        // Mapeia a rota 'reset-password' do deep link diretamente para a tela 'ResetPassword'.
         ResetPassword: 'reset-password',
       },
     },
